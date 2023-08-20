@@ -11,10 +11,11 @@ type User struct {
 	gorm.Model
 	Name      *string
 	NameKana  *string
+	Age       *uint
 	CompanyID *uint
-	Company   Company
+	Company   *Company
 }
 
 func (x User) String() string {
-	return fmt.Sprintf("{ID: %d, Name: %s, CompanyID: %d, Company: %s}", x.ID, conv.Str(x.Name), conv.Uint(x.CompanyID), x.Company)
+	return fmt.Sprintf("{ID: %d, Name: %s, Age: %d, CompanyID: %d, Company: %s}", x.ID, conv.Str(x.Name), conv.Uint(x.Age), conv.Uint(x.CompanyID), x.Company)
 }
