@@ -16,7 +16,8 @@ func main() {
 	db := infra.DB()
 
 	db.AutoMigrate(&model.User{})
-	db.AutoMigrate(&model.Company{})
+	// UserをAutoMigrateすれば自動的にCompanyができるため不要
+	// db.AutoMigrate(&model.Company{})
 
 	db.Transaction(func(tx *gorm.DB) error {
 		companyRepo := company.NewRepository(tx)
