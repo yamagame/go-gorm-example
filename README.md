@@ -721,6 +721,9 @@ func main() {
   // Compnay も含めて社員Aの情報を取得
   var user User
   db.Preload("Company").Where(&User{Name: "社員A"}).Find(&user)
+
+  // または
+  db.Preload(clause.Associations).Where(&User{Name: "社員A"}).Find(&user)
 }
 ```
 
