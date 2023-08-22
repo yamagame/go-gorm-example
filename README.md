@@ -6,7 +6,8 @@ Gorm の主だった使い方を以下のまとめる。
 
 ## モデルの定義
 
-以下はモデルの定義例。それぞれの変数がスネークケースでテーブルのフィールドになる。例えば「MemberNumber」は「member_number」となる。
+以下はモデルの定義例。この構造体は users テーブルになる。テーブル名は自動的に複数形の名前になる。
+それぞれの変数がスネークケースでテーブルのフィールドになる。例えば「MemberNumber」は「member_number」となる。
 
 ```go
 type User struct {
@@ -22,7 +23,7 @@ type User struct {
 }
 ```
 
-この構造体を使ってレコードを作成すると users テーブルにレコードを作成できる。テーブル名は自動的に複数形の名前になる。
+以下、Userレコードを一件作成する例。
 
 ```go
 package main
@@ -60,7 +61,7 @@ type User struct {
 }
 ```
 
-インデックスは「`gorm:"index"`」を使用する
+インデックスを作成する場合は「`gorm:"index"`」を使用する
 
 ```go
 type User struct {
@@ -198,18 +199,7 @@ func main() {
 
 ## クエリ
 
-次の users テーブルを例に記述する。
-
-```go
-type User struct {
-  ID uint
-  Name string
-  NameKana string
-  Age int
-}
-```
-
-プライマリーキーを指定して検索する場合。
+下記コードはプライマリーキーを指定して検索する場合。
 
 ```go
 package main
@@ -272,7 +262,7 @@ func main() {
   // Pluck を使用して names に取得
   var names []string
   db.Model(&User{}).
-    Limit(3).             // 指定件数のみ
+    Limit(3).             // 3件まで
     Pluck("Name", &names) // Pluck は一つのカラムのみ取得できる
 }
 ```
@@ -314,18 +304,18 @@ func main() {
 }
 ```
 
-参考：[レコードの取得](https://gorm.io/ja_JP/docs/query.html#%E6%96%87%E5%AD%97%E5%88%97%E6%9D%A1%E4%BB%B6)
+参考：[レコードの取得](https://gorm.io/ja_JP/docs/query.html#%E6%96%87%E5%AD%97%E5%88%97%E6%9D%A1%E4%BB%B6)  
 参考：[高度なクエリ](https://gorm.io/ja_JP/docs/advanced_query.html)
 
 ## 更新
 
-更新は Where メソッドを指定しないければデフォルトではエラーになる。
+更新は Where メソッドを指定しないければ、デフォルトではエラーになる。
 
 参考：[Global Updatesを防ぐ](https://gorm.io/ja_JP/docs/update.html#Global-Updates%E3%82%92%E9%98%B2%E3%81%90)
 
 ### Save
 
-すべてのカラムを更新する場合は Save を使用する。すべて更新されるため、使用しない方が無難。
+すべてのカラムを更新する場合は Save を使用する。すべてのフィールドが更新される。
 
 ```go
 package main
@@ -357,7 +347,7 @@ func main() {
 
 ### Update
 
-一つのカラムを更新する場合は Update を使用する。単一のカラムだけしか更新できないため用途限定。
+単一のカラムを更新する場合は Update を使用する。
 
 ```go
 package main
@@ -412,7 +402,11 @@ func main() {
 
   // Name と Age を更新
   user := User{ID: 3}
-  db.Model(&user).Select("Name", "Age").Updates(User{Name: "new_name", Age: 20})
+  db.Model(&user).Select("Name", "Age").
+     Updates(User{
+      Name: "new_name",
+      Age: 20,
+     })
 
   // First() でプライマリーキーを指定
   var result User
@@ -428,15 +422,12 @@ func main() {
 参考：[ページング](https://gorm.io/ja_JP/docs/scopes.html#%E3%83%9A%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0)
 
 ```go
-func Paginate(r *http.Request) func(db *gorm.DB) *gorm.DB {
+func Paginate(page, pageSize int) func(db *gorm.DB) *gorm.DB {
   return func (db *gorm.DB) *gorm.DB {
-    q := r.URL.Query()
-    page, _ := strconv.Atoi(q.Get("page"))
     if page <= 0 {
       page = 1
     }
 
-    pageSize, _ := strconv.Atoi(q.Get("page_size"))
     switch {
     case pageSize > 100:
       pageSize = 100
@@ -449,145 +440,11 @@ func Paginate(r *http.Request) func(db *gorm.DB) *gorm.DB {
   }
 }
 
-db.Scopes(Paginate(r)).Find(&users)
-db.Scopes(Paginate(r)).Find(&articles)
-```
+// 1ページ10件として1ページ目を取得
+db.Scopes(Paginate(1, 10)).Find(&users)
 
-## NULLの扱い
-
-```go
-type User struct {
-  ID       uint
-  Name     string
-  NameKana string
-  Age      int
-}
-```
-
-上記のような構造体があった場合、NameやAgeに0値が代入されると Where() や Updates() では無視される。
-
-```go
-package main
-
-import (
-  "sample/go-gorm-example/infra"
-)
-
-type User struct {
-  ID       uint
-  Name     string
-  NameKana string
-  Age      uint8
-}
-
-func main() {
-  db := infra.DB().Debug()
-
-  db.AutoMigrate(&User{})
-
-  var user User
-  db.Where(&User{
-    Name:     "社員A",
-    NameKana: "",
-    Age:      0,
-  }).Find(&user)
-  // => SELECT * FROM `users` WHERE `users`.`name` = '社員A'
-}
-```
-
-上記例では WHERE 句に Name はあるが、NameKana や Age は指定がない。これは Gorm によって0値が無視されたため。
-
-Gorm の[ドキュメントには次のようにある](https://gorm.io/ja_JP/docs/query.html#%E6%A7%8B%E9%80%A0%E4%BD%93-amp-%E3%83%9E%E3%83%83%E3%83%97%E3%81%A7%E3%81%AE%E6%9D%A1%E4%BB%B6%E6%8C%87%E5%AE%9A)。
-
-```text
-NOTE When querying with struct, GORM will only query with non-zero fields, that means if your field’s value is 0, '', false or other zero values, it won’t be used to build query conditions, for example:
-要約：クエリに使えるのは0値でないフィールドだけ
-```
-
-この仕様はフィールドを空文字にしたり、NULL値にしたくでも通常はできないことを意味している。
-
-フィールドを0値にする場合は以下の２つの方法がある。
-
-- フィールドをポインタ型にする
-- [database/sql](https://pkg.go.dev/database/sql) パッケージが用意したNULL許容型を使用する
-
-NULL許容型は次の通り
-
-- [sql.NullBool](https://pkg.go.dev/database/sql#NullBool)
-- [sql.NullByte](https://pkg.go.dev/database/sql#NullByte)
-- [sql.NullFloat64](https://pkg.go.dev/database/sql#NullFloat64)
-- [sql.NullInt16](https://pkg.go.dev/database/sql#NullInt16)
-- [sql.NullInt32](https://pkg.go.dev/database/sql#NullInt32)
-- [sql.NullInt64](https://pkg.go.dev/database/sql#NullInt64)
-- [sql.NullString](https://pkg.go.dev/database/sql#NullString)
-- [sql.NullTime](https://pkg.go.dev/database/sql#NullTime)
-
-```go
-// ポインタ型にした場合
-type User struct {
-  ID       uint
-  Name     *string
-  NameKana *string
-  Age      *uint8
-}
-
-// NULL許容型にした場合
-type User struct {
-  ID       uint
-  Name     sql.NullString
-  NameKana sql.NullString
-  Age      sql.NullByte
-}
-```
-
-それぞれについてインスタンス化する場合は以下のようになる。conv パッケージは独自に定義したポインタ型に変換するパッケージ。
-
-```go
-// ポインタ型にした場合
-user := User{
-  Name: conv.StrP("名前"),
-  NameKana: conv.StrP("カナ"),
-  Age: conv.UbyteP(10),
-}
-
-// NULL許容型にした場合
-user := User{
-  Name: sql.NullString{"名前", true},
-  NameKana: sql.NullString{"カナ", true},
-  Age: sql.NullByte{10, true},
-}
-```
-
-NULLを代入する場合は次のようにする。
-
-```go
-// ポインタ型にした場合
-user := User{
-  Name: nil,  // 省略可
-  NameKana: nil,  // 省略可
-  Age: nil,  // 省略可
-}
-
-// NULL許容型にした場合
-user := User{
-  Name: sql.NullString{"", false},
-  NameKana: sql.NullString{"", false},
-  Age: sql.NullByte{0, false},
-}
-```
-
-値がNULLかどうかは次のように判定する。
-
-```go
-// ポインタ型にした場合
-if user.Name != nil {
-  // 値あり
-}
-
-// NULL許容型にした場合
-if user.Name.Valid {
-  // 値あり
-}
+// 1ページ100件として2ページ目を取得
+db.Scopes(Paginate(2, 100)).Find(&articles)
 ```
 
 ## アソシエーション
@@ -650,6 +507,7 @@ import (
 
 type Company struct {
   gorm.Model
+  Code string
   Name string
 }
 
@@ -707,7 +565,16 @@ db.Transaction(func(tx *gorm.DB) error {
 })
 ```
 
+## NULL値の扱い
+
+Gorm ではフィールドが0値(NULLや0、空文字)の場合は検索やアップデートのフィールドとして無視される。
+フィールドの型は初期値の代入でリテラルが使えない点を除き、ポインタ型が便利な印象。
+
+「[NULL値の扱い](./NULLVAL.md)」を参照
+
 ## リファレンス
+
+参考:[https://pkg.go.dev/github.com/jinzhu/gorm](https://pkg.go.dev/github.com/jinzhu/gorm)
 
 - [AutoMigrate](https://gorm.io/ja_JP/docs/migration.html#Auto-Migration)
 - [Debug](https://gorm.io/ja_JP/docs/logger.html#%E3%83%87%E3%83%90%E3%83%83%E3%82%B0)
