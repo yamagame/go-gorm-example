@@ -50,7 +50,7 @@ func main() {
 }
 ```
 
-プライマリキーはデフォルトでは「ID」であるが、タグを使用することで変更することもできる。
+プライマリキーはデフォルトでは「ID」であるが、タグを使用することで変更することができる。
 
 ```go
 type User struct {
@@ -309,13 +309,13 @@ func main() {
 
 ## 更新
 
-更新は Where メソッドを指定しないければ、デフォルトではエラーになる。
+更新は Where メソッドを指定しなければ、デフォルトではエラーになる。
 
 参考：[Global Updatesを防ぐ](https://gorm.io/ja_JP/docs/update.html#Global-Updates%E3%82%92%E9%98%B2%E3%81%90)
 
 ### Save
 
-すべてのカラムを更新する場合は Save を使用する。すべてのフィールドが更新される。
+すべてのカラムを更新する場合は Save を使用する。Save はすべてのフィールドが更新されるので注意。
 
 ```go
 package main
@@ -544,6 +544,8 @@ func main() {
 
 Preload または Joins を使うことで、belongs to リレーションの [Eager Loading](https://gorm.io/ja_JP/docs/preload.html) を行うことができる。
 
+[Preload で生成される SQL の例。](https://gorm.io/gen/associations.html#Preload)
+
 ## トランザクション
 
 参考：[トランザクション](https://gorm.io/ja_JP/docs/transactions.html)
@@ -567,12 +569,12 @@ db.Transaction(func(tx *gorm.DB) error {
 
 ## NULL値の扱い
 
-Gorm ではフィールドが0値(NULLや0、空文字)の場合は検索やアップデートのフィールドとして無視される。
-フィールドの型は初期値の代入でリテラルが使えない点を除き、ポインタ型が便利な印象。
+Gorm ではフィールドが0値(NULLや0、空文字)の場合、そのフィールドは検索やアップデート時に無視される。
+そのため、フィールドの型は初期値の代入でリテラルが使えない点を除き、ポインタ型が便利な印象。
 
-「[NULL値の扱い](./NULLVAL.md)」を参照
+詳しくは「[NULL値の扱い](./NULLVAL.md)」を参照
 
-## リファレンス
+## メソッドリファレンス
 
 参考:[https://pkg.go.dev/github.com/jinzhu/gorm](https://pkg.go.dev/github.com/jinzhu/gorm)
 
@@ -619,9 +621,9 @@ Gorm ではフィールドが0値(NULLや0、空文字)の場合は検索やア�
 
 ## Gen
 
-gen を使用すると DAO (Data access object) をコード生成できる。
+gen を使用すると定義したデータモデルやデータベースから DAO (Data access object) コードを生成できる。
 
-「[Gen](./CODEGEN.md)」を参照
+サンプルについては「[Gen](./CODEGEN.md)」を参照
 
 ## ER図
 
