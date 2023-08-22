@@ -617,6 +617,12 @@ Gorm ではフィールドが0値(NULLや0、空文字)の場合は検索やア�
 - [Replace](https://gorm.io/ja_JP/docs/associations.html#Association-Mode)
 - [Scopes](https://gorm.io/ja_JP/docs/advanced_query.html#Scopes)
 
+## Gen
+
+gen を使用すると DAO (Data access object) をコード生成できる。
+
+「[Gen](./CODEGEN.md)」を参照
+
 ## ER図
 
 参考：[ER図（Entity Relationship Diagram）](https://segakuin.com/diagram/entity-relationship-diagram.html)
