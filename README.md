@@ -631,4 +631,103 @@ gen を使用すると定義したデータモデルやデータベースから 
 
 ## golang-migrate/migrate
 
+golang-migrate でDBのマイグレーションが行える。
+
 参考：https://github.com/golang-migrate/migrate
+
+マイグレーションファイルは次のようなフォーマット。
+
+```
+{version}_{title}.up.{extension}
+{version}_{title}.down.{extension}
+```
+
+実際には次のようなファイル名になる。{version} は必ずしもタイムスタンプでなくてよい。
+
+```
+1500360784_initialize_schema.down.sql
+1500360784_initialize_schema.up.sql
+1500445949_add_table.down.sql
+1500445949_add_table.up.sql
+```
+
+参考：https://github.com/golang-migrate/migrate/blob/master/MIGRATIONS.md
+
+以下、サンプルコード。
+
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+	"sample/go-gorm-example/infra"
+	"sample/go-gorm-example/migrations"
+	"strconv"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+)
+
+const DB_NAME = "go-gorm-example"
+
+func main() {
+	flag.Parse()
+	args := flag.Args()
+
+	db := infra.DB()
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+
+	driver, err := mysql.WithInstance(sqlDB, &mysql.Config{})
+	if err != nil {
+		panic(err)
+	}
+	source, err := iofs.New(migrations.FS, ".")
+	if err != nil {
+		panic(err)
+	}
+	m, err := migrate.NewWithInstance("iofs", source, DB_NAME, driver)
+	if err != nil {
+		panic(err)
+	}
+
+	switch args[0] {
+	case "up":
+		m.Steps(1)
+	case "down":
+		m.Steps(-1)
+	case "drop":
+		m.Drop()
+	case "top":
+		m.Up()
+	case "bottom":
+		m.Down()
+	case "force":
+		if len(args) > 1 {
+			ver, err := strconv.Atoi(args[1])
+			if err != nil {
+				panic(err)
+			}
+			m.Force(ver)
+		}
+	case "migrate":
+		if len(args) > 1 {
+			ver, err := strconv.ParseUint(args[1], 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			m.Migrate(uint(ver))
+		}
+	case "version":
+		ver, dirty, err := m.Version()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("version:", ver, "dirty:", dirty)
+	}
+}
+```
