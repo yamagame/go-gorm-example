@@ -84,8 +84,10 @@ func main() {
 }
 ```
 
-次の例は、CSV ファイルを生成する責務を CSVGenerator に持たせ、User と Company には CSV 化するために必要な情報だけを持たせている。
+次の例は、CSV ファイルを生成する責務を WriteCSV に持たせ、User と Company には CSV 化するために必要な情報だけを持たせている。
 Generics や Interface を使用することで、データ定義と処理を分離できる。
+
+参考：[Go generics で指定された型のオブジェクトをインターフェイスとして返す](https://qiita.com/Nabetani/items/f9aa0bb668d471e39186)
 
 ```go
 // 例2
@@ -108,10 +110,11 @@ type User struct {
 	Age      uint
 }
 
-var UserHeader = []string{
-	"名前",
-	"カナ",
-	"年齢",
+func (User) Header() []string {
+	return []string{"名前",
+		"カナ",
+		"年齢",
+	}
 }
 
 func (x *User) Record() []string {
@@ -129,10 +132,12 @@ type Company struct {
 	Capital  uint
 }
 
-var CompanyHeader = []string{
-	"名前",
-	"カナ",
-	"資本金",
+func (Company) Header() []string {
+	return []string{
+		"名前",
+		"カナ",
+		"資本金",
+	}
 }
 
 func (x *Company) Record() []string {
@@ -144,20 +149,24 @@ func (x *Company) Record() []string {
 }
 
 type CSVRecordInterface interface {
+	Header() []string
 	Record() []string
 }
 
-type CSVGenerator[T CSVRecordInterface] struct {
-	Header []string
+type CSVRecordConstraint[T any] interface {
+	CSVRecordInterface
+	*T
 }
 
 // User も Company もこの関数で CSV 化する
-func (x *CSVGenerator[T]) WriteCSV(db *gorm.DB, w io.Writer) {
-	var rows []T
+func WriteCSV[T any, PT CSVRecordConstraint[T]](db *gorm.DB, w io.Writer) {
+	var v T
+	pv := PT(&v)
+	var rows []PT
 	db.Find(&rows)
 
 	cells := [][]string{}
-	cells = append(cells, x.Header)
+	cells = append(cells, pv.Header())
 	for _, row := range rows {
 		cells = append(cells, row.Record())
 	}
@@ -169,21 +178,12 @@ func (x *CSVGenerator[T]) WriteCSV(db *gorm.DB, w io.Writer) {
 func main() {
 	db := infra.DB()
 
-	user := CSVGenerator[*User]{
-		Header: UserHeader,
-	}
-	user.WriteCSV(db, os.Stdout)
-
-	company := CSVGenerator[*Company]{
-		Header: CompanyHeader,
-	}
-	company.WriteCSV(db, os.Stdout)
+	WriteCSV[User](db, os.Stdout)
+	WriteCSV[Company](db, os.Stdout)
 }
 ```
 
-例1の方がコピペ後、異なる部分を変更するだけでよいため一見開発が簡単である。しかし、CSVファイルの作成処理に変更が加わった時、すべての作成関数に手を入れる必要がでてくる。テーブルが増えたとき大変になる。  
-例2であれば、データ定義と処理を分離できているため CSVGenerator のみの変更で済む。UTの実装も CSVGenerator のみでよい。
+例1の方がコピペ後、異なる部分を変更するだけでよいため一見開発が簡単である。しかし、CSVファイルの作成処理に変更が加わった時、すべての作成関数に手を入れる必要があり、テーブルが増えたときに大変になる。  
+例2であれば、データ定義と処理を分離できているため WriteCSV のみの変更で済む。
 
 例1のパターンをここでは「コピペプログラミング」と呼んでいる。後々、保守が大変になるため、極力「コピペプログラミング」は避けなければいけない。
-
-ちなみに、Go言語にはクラスメソッドが存在しないため、UserHeader と CompanyHeader という変数で代用している。
