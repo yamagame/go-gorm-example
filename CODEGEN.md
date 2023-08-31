@@ -28,7 +28,7 @@ func main() {
 	g := gen.NewGenerator(gen.Config{
     // 生成ディレクトリ、パッケージ名になる
 		OutPath: "./dao",
-  　// モード
+		// モード
 		Mode:    gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface,
 	})
 
