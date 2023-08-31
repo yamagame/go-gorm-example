@@ -7,11 +7,14 @@ import (
 	"gorm.io/gorm"
 )
 
+type Role int32
+
 type User struct {
 	gorm.Model
 	Name      *string
 	NameKana  *string
 	Age       *uint
+	Role      *Role
 	CompanyID *uint
 	Company   *Company
 }

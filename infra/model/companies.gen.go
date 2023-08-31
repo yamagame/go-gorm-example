@@ -14,12 +14,12 @@ const TableNameCompany = "companies"
 
 // Company mapped from table <companies>
 type Company struct {
-	ID        int64          `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	CreatedAt time.Time      `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
-	Code      string         `gorm:"column:code" json:"code"`
-	Name      string         `gorm:"column:name" json:"name"`
+	ID        int64          `gorm:"column:id;type:bigint unsigned;primaryKey;autoIncrement:true" json:"id"`
+	CreatedAt *time.Time     `gorm:"column:created_at;type:datetime(3)" json:"created_at"`
+	UpdatedAt *time.Time     `gorm:"column:updated_at;type:datetime(3)" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;type:datetime(3);index:idx_companies_deleted_at,priority:1" json:"deleted_at"`
+	Code      *string        `gorm:"column:code;type:longtext" json:"code"`
+	Name      *string        `gorm:"column:name;type:longtext" json:"name"`
 }
 
 // TableName Company's table name

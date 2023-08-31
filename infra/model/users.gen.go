@@ -14,14 +14,14 @@ const TableNameUser = "users"
 
 // User mapped from table <users>
 type User struct {
-	ID        int64          `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	CreatedAt time.Time      `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
-	Name      string         `gorm:"column:name" json:"name"`
-	NameKana  string         `gorm:"column:name_kana" json:"name_kana"`
-	Age       int64          `gorm:"column:age" json:"age"`
-	CompanyID int64          `gorm:"column:company_id" json:"company_id"`
+	ID        int64          `gorm:"column:id;type:bigint unsigned;primaryKey;autoIncrement:true" json:"id"`
+	CreatedAt *time.Time     `gorm:"column:created_at;type:datetime(3)" json:"created_at"`
+	UpdatedAt *time.Time     `gorm:"column:updated_at;type:datetime(3)" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;type:datetime(3);index:idx_users_deleted_at,priority:1" json:"deleted_at"`
+	Name      *string        `gorm:"column:name;type:longtext" json:"name"`
+	NameKana  *string        `gorm:"column:name_kana;type:longtext" json:"name_kana"`
+	Age       *int64         `gorm:"column:age;type:bigint unsigned" json:"age"`
+	CompanyID *int64         `gorm:"column:company_id;type:bigint unsigned;index:fk_users_company,priority:1" json:"company_id"`
 }
 
 // TableName User's table name

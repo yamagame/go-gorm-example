@@ -35,6 +35,7 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.Name = field.NewString(tableName, "name")
 	_user.NameKana = field.NewString(tableName, "name_kana")
 	_user.Age = field.NewUint(tableName, "age")
+	_user.Role = field.NewInt32(tableName, "role")
 	_user.CompanyID = field.NewUint(tableName, "company_id")
 	_user.Company = userBelongsToCompany{
 		db: db.Session(&gorm.Session{}),
@@ -58,6 +59,7 @@ type user struct {
 	Name      field.String
 	NameKana  field.String
 	Age       field.Uint
+	Role      field.Int32
 	CompanyID field.Uint
 	Company   userBelongsToCompany
 
@@ -83,6 +85,7 @@ func (u *user) updateTableName(table string) *user {
 	u.Name = field.NewString(table, "name")
 	u.NameKana = field.NewString(table, "name_kana")
 	u.Age = field.NewUint(table, "age")
+	u.Role = field.NewInt32(table, "role")
 	u.CompanyID = field.NewUint(table, "company_id")
 
 	u.fillFieldMap()
@@ -100,7 +103,7 @@ func (u *user) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *user) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 9)
+	u.fieldMap = make(map[string]field.Expr, 10)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
@@ -108,6 +111,7 @@ func (u *user) fillFieldMap() {
 	u.fieldMap["name"] = u.Name
 	u.fieldMap["name_kana"] = u.NameKana
 	u.fieldMap["age"] = u.Age
+	u.fieldMap["role"] = u.Role
 	u.fieldMap["company_id"] = u.CompanyID
 
 }
