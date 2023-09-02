@@ -2,3 +2,5 @@
 /build
 /work/*
 !/work/.gitkeep
+.env
+.vscode
