@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sample/go-gorm-example/conv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type Sub struct {
@@ -36,7 +38,8 @@ func TestStructToMap(t *testing.T) {
 			},
 		},
 	}
-	h := StructToMap(dummy, "dummy")
+	h, err := StructToMap(dummy, "dummy")
+	assert.NoError(t, err)
 	for k, v := range h {
 		fmt.Println(k, v)
 	}

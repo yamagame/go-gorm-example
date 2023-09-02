@@ -12,9 +12,12 @@ type Field struct {
 	Value interface{}
 }
 
-func StructToMap[T any](v T, tag string) map[string]Field {
+func StructToMap[T any](v T, tag string) (map[string]Field, error) {
 	rv := reflect.ValueOf(v) // return reflect.Value
-	return structToMap(rv, tag)
+	if rv.Type().Kind() != reflect.Struct {
+		return nil, fmt.Errorf("is not struct type")
+	}
+	return structToMap(rv, tag), nil
 }
 
 func fieldValue(fv reflect.Value, tag string) interface{} {
