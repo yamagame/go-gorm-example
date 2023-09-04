@@ -144,7 +144,6 @@ func main() {
 		Mode:              gen.WithoutContext | gen.WithQueryInterface,
 		FieldWithIndexTag: true,
 		FieldNullable:     true,
-		WithUnitTest:      true,
 		FieldWithTypeTag:  true,
 	})
 
