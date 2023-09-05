@@ -83,3 +83,27 @@ func TestStructToField3(t *testing.T) {
 		})
 	assert.Error(t, err)
 }
+
+func TestStructToField4(t *testing.T) {
+	dummy := Dummy{
+		NumberPtrField: conv.UintP(10),
+		StringPtrField: conv.StrP(""),
+	}
+	err := RecordToStruct(&dummy,
+		map[string]interface{}{
+			".NumberField":           10,
+			".NumberPtrField":        uint(10),
+			".StringField":           "name",
+			".Sub.Sub2.Number2Field": 300,
+		})
+	assert.NoError(t, err)
+	ret, err := StructToRecord(&dummy,
+		[]string{
+			".NumberField",
+			".NumberPtrField",
+			".StringField",
+			".Sub.Sub2.Number2Field",
+		})
+	assert.NoError(t, err)
+	assert.Equal(t, []interface{}{10, uint(10), "name", 300}, ret)
+}

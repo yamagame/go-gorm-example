@@ -53,6 +53,24 @@ func (x *structToRecords[T]) Marshal(v T, records []string) ([]interface{}, erro
 	return ret, nil
 }
 
+// RecordToStruct 構造体を配列レコードに変換
+func RecordToStruct[T any](v T, values map[string]interface{}) error {
+	t := newStructToRecord[T]()
+	t.values = values
+	return t.Unmarshal(v)
+}
+
+// Unmarshal 構造体を配列レコードに変換
+func (x *structToRecords[T]) Unmarshal(v T) error {
+	rv := reflect.ValueOf(v)
+	kind := rv.Type().Kind()
+	if kind == reflect.Pointer && rv.Elem().Kind() == reflect.Struct {
+		x.fieldToStruct(rv.Elem(), "")
+		return nil
+	}
+	return fmt.Errorf("is not struct pointer type")
+}
+
 func (x *structToRecords[T]) fieldMap(fv reflect.Value, mark string) {
 	switch fv.Kind() {
 	case reflect.Bool:
@@ -103,4 +121,87 @@ func (x *structToRecords[T]) structToField(rv reflect.Value, mark string) interf
 		x.fieldMap(fv, mark+"."+f.Name)
 	}
 	return nil
+}
+
+func (x *structToRecords[T]) mapField(fv reflect.Value, mark string) {
+	kind := fv.Kind()
+	switch kind {
+	case reflect.Bool:
+		if val, ok := x.values[mark]; ok {
+			fv.SetBool(val.(bool))
+		}
+	case reflect.Int:
+		if val, ok := x.values[mark]; ok {
+			fv.SetInt(int64(int64(val.(int))))
+		}
+	case reflect.Int64:
+		if val, ok := x.values[mark]; ok {
+			fv.SetInt(val.(int64))
+		}
+	case reflect.Int32:
+		if val, ok := x.values[mark]; ok {
+			fv.SetInt(val.(int64))
+		}
+	case reflect.Int16:
+		if val, ok := x.values[mark]; ok {
+			fv.SetInt(val.(int64))
+		}
+	case reflect.Int8:
+		if val, ok := x.values[mark]; ok {
+			fv.SetInt(val.(int64))
+		}
+	case reflect.Uint:
+		if val, ok := x.values[mark]; ok {
+			fv.SetUint(uint64(val.(uint)))
+		}
+	case reflect.Uint64:
+		if val, ok := x.values[mark]; ok {
+			fv.SetUint(val.(uint64))
+		}
+	case reflect.Uint32:
+		if val, ok := x.values[mark]; ok {
+			fv.SetUint(val.(uint64))
+		}
+	case reflect.Uint16:
+		if val, ok := x.values[mark]; ok {
+			fv.SetUint(val.(uint64))
+		}
+	case reflect.Uint8:
+		if val, ok := x.values[mark]; ok {
+			fv.SetUint(val.(uint64))
+		}
+	case reflect.Uintptr:
+		if val, ok := x.values[mark]; ok {
+			fv.SetUint(val.(uint64))
+		}
+	case reflect.Float32:
+		if val, ok := x.values[mark]; ok {
+			fv.SetFloat(val.(float64))
+		}
+	case reflect.Float64:
+		if val, ok := x.values[mark]; ok {
+			fv.SetFloat(val.(float64))
+		}
+	case reflect.String:
+		if val, ok := x.values[mark]; ok {
+			fv.SetString(val.(string))
+		}
+	case reflect.Struct:
+		x.fieldToStruct(fv, mark)
+	case reflect.Array, reflect.Func, reflect.Map:
+	case reflect.Pointer:
+		// 後で
+		v := fv.Elem()
+		x.mapField(v, mark)
+	default:
+		panic(fmt.Errorf("no support type %v", fv.Kind()))
+	}
+}
+
+func (x *structToRecords[T]) fieldToStruct(rv reflect.Value, mark string) {
+	for i := 0; i < rv.NumField(); i++ {
+		f := rv.Type().Field(i)
+		fv := rv.FieldByName(f.Name)
+		x.mapField(fv, mark+"."+f.Name)
+	}
 }
