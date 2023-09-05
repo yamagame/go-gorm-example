@@ -6,44 +6,52 @@ import (
 )
 
 type structToRecords[T any] struct {
-	records []string
-	values  map[string]interface{}
+	values map[string]interface{}
+}
+
+// newStructToRecord コンストラクタ
+func newStructToRecord[T any]() structToRecords[T] {
+	return structToRecords[T]{
+		values: map[string]interface{}{},
+	}
 }
 
 // StrcutToField 構造体を配列レコードに変換
 func StructToRecord[T any](v T, records []string) ([]interface{}, error) {
-	t := structToRecords[T]{
-		records: records,
-		values:  map[string]interface{}{},
+	t := newStructToRecord[T]()
+	return t.Marshal(v, records)
+}
+
+// Marshal 構造体を配列レコードに変換
+func (x *structToRecords[T]) Marshal(v T, records []string) ([]interface{}, error) {
+	marshal := func(v T) error {
+		rv := reflect.ValueOf(v)
+		kind := rv.Type().Kind()
+		if kind == reflect.Pointer {
+			switch rv.Elem().Kind() {
+			case reflect.Struct:
+				x.structToField(rv.Elem(), "")
+				return nil
+			default:
+				return fmt.Errorf("is not struct type")
+			}
+		}
+		if kind == reflect.Struct {
+			x.structToField(rv, "")
+			return nil
+		}
+		return fmt.Errorf("is not struct type")
 	}
-	err := t.Marchal(v)
+	err := marshal(v)
 	if err != nil {
 		return nil, err
 	}
 	ret := []interface{}{}
 	for _, k := range records {
-		ret = append(ret, t.values[k])
+		ret = append(ret, x.values[k])
 	}
 	return ret, nil
-}
 
-func (x *structToRecords[T]) Marchal(v T) error {
-	rv := reflect.ValueOf(v)
-	kind := rv.Type().Kind()
-	if kind == reflect.Pointer {
-		switch rv.Elem().Kind() {
-		case reflect.Struct:
-			x.structToField(rv.Elem(), "")
-			return nil
-		default:
-			return fmt.Errorf("is not struct type")
-		}
-	}
-	if kind == reflect.Struct {
-		x.structToField(rv, "")
-		return nil
-	}
-	return fmt.Errorf("is not struct type")
 }
 
 func (x *structToRecords[T]) fieldMap(fv reflect.Value, mark string) {
