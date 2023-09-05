@@ -51,7 +51,6 @@ func (x *structToRecords[T]) Marshal(v T, records []string) ([]interface{}, erro
 		ret = append(ret, x.values[k])
 	}
 	return ret, nil
-
 }
 
 func (x *structToRecords[T]) fieldMap(fv reflect.Value, mark string) {
