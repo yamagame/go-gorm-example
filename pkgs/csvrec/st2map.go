@@ -236,8 +236,6 @@ func (x *structField[T]) mapField(fv reflect.Value, ppath string) error {
 						x.values = _values
 						x.mapField(fv.Index(idx), "")
 						x.values = values
-						// } else {
-						// 	fv.Index(idx).Set(reflect.ValueOf(x.values[k]))
 					}
 				default:
 					if len(m) > 1 {
@@ -252,9 +250,6 @@ func (x *structField[T]) mapField(fv reflect.Value, ppath string) error {
 						x.values = _values
 						x.mapField(fv.Index(idx), "")
 						x.values = values
-						// } else {
-						// 	slice := reflect.Append(fv, reflect.ValueOf(x.values[k]))
-						// 	fv.Set(slice)
 					}
 				}
 			}
