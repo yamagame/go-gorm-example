@@ -10,7 +10,11 @@ type CSVRecordConstraint[T any] interface {
 	*T
 }
 
-func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, field map[string]string) ([]*T, error) {
+func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, mapping [][]string) ([]*T, error) {
+	field := map[string]string{}
+	for _, v := range mapping {
+		field[v[0]] = v[1]
+	}
 	reader := csv.NewReader(fp)
 	reader.FieldsPerRecord = -1
 	line := 0
@@ -43,10 +47,17 @@ func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, field map[strin
 	return ret, nil
 }
 
-func StructToCSV[T any, PT CSVRecordConstraint[T]](records []*T, fields []string, fp io.Writer) error {
+func StructToCSV[T any, PT CSVRecordConstraint[T]](records []*T, mapping [][]string, fp io.Writer) error {
 	writer := csv.NewWriter(fp)
+	header := []string{}
+	keys := []string{}
+	for _, v := range mapping {
+		header = append(header, v[0])
+		keys = append(keys, v[1])
+	}
+	writer.Write(header)
 	for _, r := range records {
-		ret, err := StructToField(r, fields)
+		ret, err := StructToField(r, keys)
 		if err != nil {
 			return err
 		}

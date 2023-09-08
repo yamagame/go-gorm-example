@@ -1,9 +1,10 @@
 package csvrec
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
+	"sample/go-gorm-example/pkgs/testutils"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,19 +23,22 @@ func (x CSVRecord) String() string {
 }
 
 func TestPack(t *testing.T) {
+	mapping := [][]string{
+		{"Value1", ".Value1"},
+		{"Value2", ".Value2"},
+		{"Value3", ".Value3"},
+		{"Value4", ".Value4"},
+	}
 	fp, _ := os.Open("./testdata/sample.csv")
 	defer fp.Close()
-	ret, err := CSVToStruct[CSVRecord](fp, map[string]string{
-		"Value1": ".Value1",
-		"Value2": ".Value2",
-		"Value3": ".Value3",
-	})
+	ret, err := CSVToStruct[CSVRecord](fp, mapping)
 	assert.NoError(t, err)
-	fmt.Println(ret)
-	StructToCSV(ret, []string{
-		".Value1",
-		".Value2",
-		".Value3",
-		".Value4",
-	}, os.Stdout)
+	var buf bytes.Buffer
+	err = StructToCSV(ret, mapping, &buf)
+	assert.NoError(t, err)
+
+	testutils.EqualSnapshot(t, buf.Bytes(), "sample.csv.out")
+	// testutils.SaveSnapshot(t, buf.Bytes(), "sample.csv.out")
+
+	assert.NoError(t, err)
 }
