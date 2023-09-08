@@ -6,11 +6,11 @@ import (
 	"io"
 )
 
-type CSVRecordConstraint[T any] interface {
+type csvConstraint[T any] interface {
 	*T
 }
 
-func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, mapping [][]string) ([]*T, error) {
+func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping [][]string) ([]*T, error) {
 	field := map[string]string{}
 	for _, v := range mapping {
 		field[v[0]] = v[1]
@@ -39,7 +39,10 @@ func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, mapping [][]str
 					mapping[val] = record[i]
 				}
 			}
-			FieldToStruct(result, mapping)
+			err := FieldToStruct(result, mapping)
+			if err != nil {
+				return nil, err
+			}
 			ret = append(ret, &v)
 		}
 		line++
@@ -47,7 +50,7 @@ func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, mapping [][]str
 	return ret, nil
 }
 
-func StructToCSV[T any, PT CSVRecordConstraint[T]](records []*T, mapping [][]string, fp io.Writer) error {
+func StructToCSV[T any, PT csvConstraint[T]](records []*T, mapping [][]string, fp io.Writer) error {
 	writer := csv.NewWriter(fp)
 	header := []string{}
 	keys := []string{}
@@ -63,7 +66,11 @@ func StructToCSV[T any, PT CSVRecordConstraint[T]](records []*T, mapping [][]str
 		}
 		record := []string{}
 		for _, r := range ret {
-			record = append(record, fmt.Sprintf("%v", r))
+			if r != nil {
+				record = append(record, fmt.Sprintf("%v", r))
+			} else {
+				record = append(record, "")
+			}
 		}
 		writer.Write(record)
 	}

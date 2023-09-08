@@ -1,7 +1,9 @@
 package csvrec
 
 import (
+	"fmt"
 	"sample/go-gorm-example/conv"
+	"sample/go-gorm-example/pkgs/testutils"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +26,7 @@ type Dummy struct {
 	Sub            Sub
 }
 
-func TestStructToField(t *testing.T) {
+func TestStructToField1(t *testing.T) {
 	dummy := Dummy{
 		NumberField:    10,
 		StringField:    "name",
@@ -123,39 +125,39 @@ func TestStructToField4(t *testing.T) {
 	}, ret)
 }
 
-type Dummy2 struct {
-	Bool    bool
-	Int     int
-	Int64   int64
-	Int32   int32
-	Int16   int16
-	Int8    int8
-	Uint    uint
-	Uint64  uint64
-	Uint32  uint32
-	Uint16  uint16
-	Uint8   uint8
-	Float32 float32
-	Float64 float64
-	String  string
-
-	BoolPtr    *bool
-	IntPtr     *int
-	Int64Ptr   *int64
-	Int32Ptr   *int32
-	Int16Ptr   *int16
-	Int8Ptr    *int8
-	UintPtr    *uint
-	Uint64Ptr  *uint64
-	Uint32Ptr  *uint32
-	Uint16Ptr  *uint16
-	Uint8Ptr   *uint8
-	Float32Ptr *float32
-	Float64Ptr *float64
-	StringPtr  *string
-}
-
 func TestStructToField5(t *testing.T) {
+	type Dummy2 struct {
+		Bool    bool
+		Int     int
+		Int64   int64
+		Int32   int32
+		Int16   int16
+		Int8    int8
+		Uint    uint
+		Uint64  uint64
+		Uint32  uint32
+		Uint16  uint16
+		Uint8   uint8
+		Float32 float32
+		Float64 float64
+		String  string
+
+		BoolPtr    *bool
+		IntPtr     *int
+		Int64Ptr   *int64
+		Int32Ptr   *int32
+		Int16Ptr   *int16
+		Int8Ptr    *int8
+		UintPtr    *uint
+		Uint64Ptr  *uint64
+		Uint32Ptr  *uint32
+		Uint16Ptr  *uint16
+		Uint8Ptr   *uint8
+		Float32Ptr *float32
+		Float64Ptr *float64
+		StringPtr  *string
+	}
+
 	Bool := true
 	Int := int(10)
 	Int64 := int64(10)
@@ -295,4 +297,61 @@ func TestStructToField5(t *testing.T) {
 		float64(32),
 		"world",
 	}, ret)
+}
+
+func TestStructToField6(t *testing.T) {
+	one := uint(1)
+	two := uint(2)
+	three := uint(3)
+	type CSVSub struct {
+		Value1 string
+		Value2 uint
+	}
+	type CSVRecord struct {
+		Value1 [3]string
+		Value2 []*uint
+		Value3 []int
+		Value4 []CSVSub
+	}
+	dummy := CSVRecord{
+		Value1: [3]string{"1", "2", "3"},
+		Value2: []*uint{&one, &two, &three},
+		Value3: []int{1, 2, 3},
+		Value4: []CSVSub{{Value1: "A", Value2: 1}, {Value1: "B", Value2: 2}},
+	}
+	mapping := []string{
+		".Value1[0]", ".Value1[1]", ".Value1[2]",
+		".Value2[0]", ".Value2[1]", ".Value2[2]",
+		".Value3[0]", ".Value3[1]", ".Value3[2]",
+		".Value4[0].Value1", ".Value4[0].Value2",
+		".Value4[1].Value1", ".Value4[1].Value2",
+	}
+	ret, err := StructToField(&dummy, mapping)
+	assert.NoError(t, err)
+
+	testutils.EqualSnapshot(t, []byte(fmt.Sprintf("%v", ret)), "csv-record.out")
+	// testutils.SaveSnapshot(t, []byte(fmt.Sprintf("%v", ret)), "csv-record.out")
+
+	var dummy2 CSVRecord
+	err = FieldToStruct(&dummy2, map[string]interface{}{
+		".Value1[0]":        "hello",
+		".Value1[1]":        "world",
+		".Value2[0]":        three,
+		".Value2[1]":        two,
+		".Value2[2]":        one,
+		".Value3[0]":        1,
+		".Value3[1]":        2,
+		".Value3[2]":        3,
+		".Value4[0].Value1": "B",
+		".Value4[0].Value2": uint(2),
+		".Value4[1].Value1": "C",
+		".Value4[1].Value2": uint(3),
+	})
+	assert.NoError(t, err)
+
+	ret2, err := StructToField(&dummy2, mapping)
+	assert.NoError(t, err)
+
+	testutils.EqualSnapshot(t, []byte(fmt.Sprintf("%v", ret2)), "csv-record2.out")
+	// testutils.SaveSnapshot(t, []byte(fmt.Sprintf("%v", ret2)), "csv-record2.out")
 }
