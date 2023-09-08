@@ -1,4 +1,4 @@
-package csvpack
+package csvrec
 
 import (
 	"encoding/json"

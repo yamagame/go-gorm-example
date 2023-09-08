@@ -1,11 +1,9 @@
-package csvpack
+package csvrec
 
 import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"sample/go-gorm-example/pkgs/st2rec"
-	"strconv"
 )
 
 type CSVRecordConstraint[T any] interface {
@@ -33,15 +31,11 @@ func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, field map[strin
 			result := PT(&v)
 			mapping := map[string]interface{}{}
 			for i, h := range header {
-				v, err := strconv.ParseInt(record[i], 10, 64)
-				if err != nil {
-					return nil, err
-				}
 				if val, ok := field[h]; ok {
-					mapping[val] = v
+					mapping[val] = record[i]
 				}
 			}
-			st2rec.FieldToStruct(result, mapping)
+			FieldToStruct(result, mapping)
 			ret = append(ret, &v)
 		}
 		line++
@@ -52,7 +46,7 @@ func CSVToStruct[T any, PT CSVRecordConstraint[T]](fp io.Reader, field map[strin
 func StructToCSV[T any, PT CSVRecordConstraint[T]](records []*T, fields []string, fp io.Writer) error {
 	writer := csv.NewWriter(fp)
 	for _, r := range records {
-		ret, err := st2rec.StructToField(r, fields)
+		ret, err := StructToField(r, fields)
 		if err != nil {
 			return err
 		}

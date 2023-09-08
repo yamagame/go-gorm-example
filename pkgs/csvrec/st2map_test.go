@@ -1,4 +1,4 @@
-package st2rec
+package csvrec
 
 import (
 	"sample/go-gorm-example/conv"

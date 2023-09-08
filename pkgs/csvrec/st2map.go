@@ -1,8 +1,9 @@
-package st2rec
+package csvrec
 
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -66,13 +67,12 @@ func (x *structField[T]) Unmarshal(v T) error {
 	rv := reflect.ValueOf(v)
 	kind := rv.Type().Kind()
 	if kind == reflect.Pointer && rv.Elem().Kind() == reflect.Struct {
-		x.fieldToStruct(rv.Elem(), "")
-		return nil
+		return x.fieldToStruct(rv.Elem(), "")
 	}
 	return fmt.Errorf("is not struct pointer type")
 }
 
-func (x *structField[T]) fieldMap(fv reflect.Value, mark string) {
+func (x *structField[T]) fieldMap(fv reflect.Value, mark string) error {
 	switch fv.Kind() {
 	case reflect.Bool:
 		x.values[mark] = fv.Bool()
@@ -113,47 +113,112 @@ func (x *structField[T]) fieldMap(fv reflect.Value, mark string) {
 			x.fieldMap(v, mark)
 		}
 	default:
-		panic(fmt.Errorf("no support type %v", fv.Kind()))
-	}
-}
-
-func (x *structField[T]) structToField(rv reflect.Value, mark string) interface{} {
-	for i := 0; i < rv.NumField(); i++ {
-		f := rv.Type().Field(i)
-		fv := rv.FieldByName(f.Name)
-		x.fieldMap(fv, mark+"."+f.Name)
+		return fmt.Errorf("no support type %v", fv.Kind())
 	}
 	return nil
 }
 
-func (x *structField[T]) mapField(fv reflect.Value, mark string) {
+func (x *structField[T]) structToField(rv reflect.Value, mark string) (interface{}, error) {
+	for i := 0; i < rv.NumField(); i++ {
+		f := rv.Type().Field(i)
+		fv := rv.FieldByName(f.Name)
+		if err := x.fieldMap(fv, mark+"."+f.Name); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
+func (x *structField[T]) mapField(fv reflect.Value, mark string) error {
 	kind := fv.Kind()
 	switch kind {
 	case reflect.Bool:
 		if val, ok := x.values[mark]; ok {
-			fv.SetBool(val.(bool))
+			if reflect.TypeOf(val).Kind() == reflect.String {
+				val = val == "true"
+			}
+			fv.Set(reflect.ValueOf(val))
 		}
 	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
 		if val, ok := x.values[mark]; ok {
-			fv.SetInt(val.(int64))
+			if reflect.TypeOf(val).Kind() == reflect.String {
+				v, err := strconv.ParseInt(val.(string), 10, 64)
+				if err != nil {
+					return err
+				}
+				switch kind {
+				case reflect.Int:
+					val = int(v)
+				case reflect.Int64:
+					val = int64(v)
+				case reflect.Int32:
+					val = int32(v)
+				case reflect.Int16:
+					val = int16(v)
+				case reflect.Int8:
+					val = int8(v)
+				default:
+					return fmt.Errorf("invalid int value %v", kind)
+				}
+			}
+			fv.Set(reflect.ValueOf(val))
 		}
 	case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uintptr:
 		if val, ok := x.values[mark]; ok {
-			fv.SetUint(val.(uint64))
+			if reflect.TypeOf(val).Kind() == reflect.String {
+				v, err := strconv.ParseUint(val.(string), 10, 64)
+				if err != nil {
+					return err
+				}
+				switch kind {
+				case reflect.Uint:
+					val = uint(v)
+				case reflect.Uint64:
+					val = uint64(v)
+				case reflect.Uint32:
+					val = uint32(v)
+				case reflect.Uint16:
+					val = uint16(v)
+				case reflect.Uint8:
+					val = uint8(v)
+				case reflect.Uintptr:
+					val = uint(v)
+				default:
+					return fmt.Errorf("invalid uint value %v", kind)
+				}
+			}
+			fv.Set(reflect.ValueOf(val))
 		}
 	case reflect.Float32, reflect.Float64:
 		if val, ok := x.values[mark]; ok {
-			fv.SetFloat(val.(float64))
+			if reflect.TypeOf(val).Kind() == reflect.String {
+				v, err := strconv.ParseFloat(val.(string), 64)
+				if err != nil {
+					return err
+				}
+				switch kind {
+				case reflect.Float32:
+					val = float32(v)
+				case reflect.Float64:
+					val = v
+				default:
+					return fmt.Errorf("invalid float value %v", kind)
+				}
+			}
+			fv.Set(reflect.ValueOf(val))
 		}
 	case reflect.String:
 		if val, ok := x.values[mark]; ok {
 			fv.Set(reflect.ValueOf(val))
 		}
 	case reflect.Struct:
-		x.fieldToStruct(fv, mark)
+		err := x.fieldToStruct(fv, mark)
+		if err != nil {
+			return err
+		}
 	case reflect.Array, reflect.Func, reflect.Map:
 	case reflect.Pointer:
-		for k, _ := range x.values {
+		for k := range x.values {
 			if strings.HasPrefix(k, mark) {
 				if fv.IsNil() {
 					fv.Set(reflect.New(fv.Type().Elem()))
@@ -164,14 +229,19 @@ func (x *structField[T]) mapField(fv reflect.Value, mark string) {
 			}
 		}
 	default:
-		panic(fmt.Errorf("no support type %v", fv.Kind()))
+		return fmt.Errorf("no support type %v", kind)
 	}
+	return nil
 }
 
-func (x *structField[T]) fieldToStruct(rv reflect.Value, mark string) {
+func (x *structField[T]) fieldToStruct(rv reflect.Value, mark string) error {
 	for i := 0; i < rv.NumField(); i++ {
 		f := rv.Type().Field(i)
 		fv := rv.FieldByName(f.Name)
-		x.mapField(fv, mark+"."+f.Name)
+		err := x.mapField(fv, mark+"."+f.Name)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
