@@ -6,14 +6,26 @@ import (
 	"io"
 )
 
+type CSVGateway struct {
+	ToFile   func(v interface{}) (string, error)
+	ToStruct func(v string) (string, error)
+}
+
+type CSVMapping struct {
+	Column    string
+	FieldPath string
+	Gateway   *CSVGateway
+}
+
 type csvConstraint[T any] interface {
 	*T
 }
 
-func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping [][]string) ([]*T, error) {
-	field := map[string]string{}
+func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping []CSVMapping) ([]*T, error) {
+	field := map[string]*CSVMapping{}
 	for _, v := range mapping {
-		field[v[0]] = v[1]
+		t := v
+		field[v.Column] = &t
 	}
 	reader := csv.NewReader(fp)
 	reader.FieldsPerRecord = -1
@@ -36,7 +48,15 @@ func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping [][]string) (
 			mapping := map[string]interface{}{}
 			for i, h := range header {
 				if val, ok := field[h]; ok {
-					mapping[val] = record[i]
+					v := record[i]
+					if val.Gateway != nil && val.Gateway.ToStruct != nil {
+						var err error
+						v, err = val.Gateway.ToStruct(v)
+						if err != nil {
+							return nil, err
+						}
+					}
+					mapping[val.FieldPath] = v
 				}
 			}
 			err := FieldToStruct(result, mapping)
@@ -50,13 +70,13 @@ func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping [][]string) (
 	return ret, nil
 }
 
-func StructToCSV[T any, PT csvConstraint[T]](records []*T, mapping [][]string, fp io.Writer) error {
+func StructToCSV[T any, PT csvConstraint[T]](records []*T, mapping []CSVMapping, fp io.Writer) error {
 	writer := csv.NewWriter(fp)
 	header := []string{}
 	keys := []string{}
 	for _, v := range mapping {
-		header = append(header, v[0])
-		keys = append(keys, v[1])
+		header = append(header, v.Column)
+		keys = append(keys, v.FieldPath)
 	}
 	writer.Write(header)
 	for _, r := range records {
@@ -65,12 +85,20 @@ func StructToCSV[T any, PT csvConstraint[T]](records []*T, mapping [][]string, f
 			return err
 		}
 		record := []string{}
-		for _, r := range ret {
+		for i, m := range mapping {
+			v := ""
+			r := ret[i]
 			if r != nil {
-				record = append(record, fmt.Sprintf("%v", r))
-			} else {
-				record = append(record, "")
+				if m.Gateway != nil && m.Gateway.ToFile != nil {
+					var err error
+					r, err = m.Gateway.ToFile(r)
+					if err != nil {
+						return err
+					}
+				}
+				v = fmt.Sprintf("%v", r)
 			}
+			record = append(record, v)
 		}
 		writer.Write(record)
 	}

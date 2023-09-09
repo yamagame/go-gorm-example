@@ -16,11 +16,11 @@ func TestPack1(t *testing.T) {
 		Value3 int
 		Value4 int
 	}
-	mapping := [][]string{
-		{"Value1", ".Value1"},
-		{"Value2", ".Value2"},
-		{"Value3", ".Value3"},
-		{"Value4", ".Value4"},
+	mapping := []CSVMapping{
+		{"Value1", ".Value1", nil},
+		{"Value2", ".Value2", nil},
+		{"Value3", ".Value3", nil},
+		{"Value4", ".Value4", nil},
 	}
 	fp, _ := os.Open("./testdata/sample.csv")
 	defer fp.Close()
@@ -43,11 +43,11 @@ func TestPack2(t *testing.T) {
 		Value3 *uint32
 		Value4 *string
 	}
-	mapping := [][]string{
-		{"Value1", ".Value1"},
-		{"Value2", ".Value2"},
-		{"Value3", ".Value3"},
-		{"Value4", ".Value4"},
+	mapping := []CSVMapping{
+		{"Value1", ".Value1", nil},
+		{"Value2", ".Value2", nil},
+		{"Value3", ".Value3", nil},
+		{"Value4", ".Value4", nil},
 	}
 	fp, _ := os.Open("./testdata/sample.csv")
 	defer fp.Close()
@@ -76,14 +76,14 @@ func TestPack3(t *testing.T) {
 		Sub1   CSVSub
 		Sub2   []CSVSub
 	}
-	mapping := [][]string{
-		{"Value1", ".Value1"},
-		{"Value2", ".Value3[1]"},
-		{"Value3", ".Sub1.Value1"},
-		{"Value4", ".Sub1.Value2"},
-		{"Value5", ".Sub2[0].Value1"},
-		{"Value6", ".MissingValue"},
-		{"Value7", ".Sub2[0].Value2"},
+	mapping := []CSVMapping{
+		{"Value1", ".Value1", nil},
+		{"Value2", ".Value3[1]", nil},
+		{"Value3", ".Sub1.Value1", nil},
+		{"Value4", ".Sub1.Value2", nil},
+		{"Value5", ".Sub2[0].Value1", nil},
+		{"Value6", ".MissingValue", nil},
+		{"Value7", ".Sub2[0].Value2", nil},
 	}
 	fp, _ := os.Open("./testdata/sample.csv")
 	defer fp.Close()
