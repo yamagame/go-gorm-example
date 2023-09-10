@@ -1,4 +1,4 @@
-package csvrec
+package csvconv
 
 import (
 	"encoding/csv"
@@ -6,23 +6,23 @@ import (
 	"io"
 )
 
-type CSVGateway struct {
-	ToFile   func(v interface{}) (string, error)
-	ToStruct func(v string) (string, error)
+type Gateway struct {
+	ToCSV    func(v interface{}) (string, error)
+	ToStruct func(v string) (interface{}, error)
 }
 
-type CSVMapping struct {
+type Mapping struct {
 	Column    string
 	FieldPath string
-	Gateway   *CSVGateway
+	Gateway   *Gateway
 }
 
 type csvConstraint[T any] interface {
 	*T
 }
 
-func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping []CSVMapping) ([]*T, error) {
-	field := map[string]*CSVMapping{}
+func Read[T any, PT csvConstraint[T]](fp io.Reader, mapping []Mapping) ([]*T, error) {
+	field := map[string]*Mapping{}
 	for _, v := range mapping {
 		t := v
 		field[v.Column] = &t
@@ -51,12 +51,15 @@ func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping []CSVMapping)
 					v := record[i]
 					if val.Gateway != nil && val.Gateway.ToStruct != nil {
 						var err error
-						v, err = val.Gateway.ToStruct(v)
+						var t interface{}
+						t, err = val.Gateway.ToStruct(v)
 						if err != nil {
 							return nil, err
 						}
+						mapping[val.FieldPath] = t
+					} else {
+						mapping[val.FieldPath] = v
 					}
-					mapping[val.FieldPath] = v
 				}
 			}
 			err := FieldToStruct(result, mapping)
@@ -70,7 +73,7 @@ func CSVToStruct[T any, PT csvConstraint[T]](fp io.Reader, mapping []CSVMapping)
 	return ret, nil
 }
 
-func StructToCSV[T any, PT csvConstraint[T]](records []*T, mapping []CSVMapping, fp io.Writer) error {
+func Write[T any, PT csvConstraint[T]](records []*T, mapping []Mapping, fp io.Writer) error {
 	writer := csv.NewWriter(fp)
 	header := []string{}
 	keys := []string{}
@@ -87,16 +90,17 @@ func StructToCSV[T any, PT csvConstraint[T]](records []*T, mapping []CSVMapping,
 		record := []string{}
 		for i, m := range mapping {
 			v := ""
-			r := ret[i]
-			if r != nil {
-				if m.Gateway != nil && m.Gateway.ToFile != nil {
+			f := ret[i]
+			if f != nil {
+				if m.Gateway != nil && m.Gateway.ToCSV != nil {
 					var err error
-					r, err = m.Gateway.ToFile(r)
+					v, err = m.Gateway.ToCSV(f)
 					if err != nil {
 						return err
 					}
+				} else {
+					v = fmt.Sprintf("%v", f)
 				}
-				v = fmt.Sprintf("%v", r)
 			}
 			record = append(record, v)
 		}

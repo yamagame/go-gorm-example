@@ -1,4 +1,4 @@
-package csvrec
+package csvconv
 
 import (
 	"fmt"

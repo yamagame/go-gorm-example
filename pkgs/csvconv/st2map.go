@@ -1,4 +1,4 @@
-package csvrec
+package csvconv
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func newStructField[T any]() structField[T] {
 // StructToField
 /////////////////////////////////////////////////////////////////////
 
-// StrcutToField 構造体を配列レコードに変換
+// StructToField 構造体を配列レコードに変換
 func StructToField[T any](v T, keys []string) ([]interface{}, error) {
 	t := newStructField[T]()
 	return t.Marshal(v, keys)
