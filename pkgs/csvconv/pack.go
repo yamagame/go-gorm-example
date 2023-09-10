@@ -54,7 +54,7 @@ type csvConstraint[T any] interface {
 	*T
 }
 
-func Read[T any, PT csvConstraint[T]](fp io.Reader, mapping []*Mapping[T]) ([]*T, error) {
+func FromCSV[T any, PT csvConstraint[T]](fp io.Reader, mapping []*Mapping[T]) ([]*T, error) {
 	field := map[string]*Mapping[T]{}
 	for _, v := range mapping {
 		t := v
@@ -96,8 +96,7 @@ func Read[T any, PT csvConstraint[T]](fp io.Reader, mapping []*Mapping[T]) ([]*T
 					}
 				}
 			}
-			err := FieldToStruct(result, fields)
-			if err != nil {
+			if err := FieldToStruct(result, fields); err != nil {
 				return nil, err
 			}
 			ret = append(ret, &obj)
@@ -107,7 +106,7 @@ func Read[T any, PT csvConstraint[T]](fp io.Reader, mapping []*Mapping[T]) ([]*T
 	return ret, nil
 }
 
-func Write[T any, PT csvConstraint[T]](records []*T, mapping []*Mapping[T], fp io.Writer) error {
+func ToCSV[T any, PT csvConstraint[T]](records []*T, mapping []*Mapping[T], fp io.Writer) error {
 	writer := csv.NewWriter(fp)
 	header := []string{}
 	keys := []string{}

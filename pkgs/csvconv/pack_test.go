@@ -26,10 +26,10 @@ func TestPack1(t *testing.T) {
 	}
 	fp, _ := os.Open("./testdata/sample.csv")
 	defer fp.Close()
-	ret, err := Read[CSVRecord](fp, mapping)
+	ret, err := FromCSV[CSVRecord](fp, mapping)
 	assert.NoError(t, err)
 	var buf bytes.Buffer
-	err = Write(ret, mapping, &buf)
+	err = ToCSV(ret, mapping, &buf)
 	assert.NoError(t, err)
 
 	testutils.EqualSnapshot(t, buf.Bytes(), "sample.csv.out")
@@ -53,10 +53,10 @@ func TestPack2(t *testing.T) {
 	}
 	fp, _ := os.Open("./testdata/sample.csv")
 	defer fp.Close()
-	ret, err := Read[CSVRecord](fp, mapping)
+	ret, err := FromCSV[CSVRecord](fp, mapping)
 	assert.NoError(t, err)
 	var buf bytes.Buffer
-	err = Write(ret, mapping, &buf)
+	err = ToCSV(ret, mapping, &buf)
 	assert.NoError(t, err)
 
 	testutils.EqualSnapshot(t, buf.Bytes(), "sample.csv.out")
@@ -89,11 +89,11 @@ func TestPack3(t *testing.T) {
 	}
 	fp, _ := os.Open("./testdata/sample.csv")
 	defer fp.Close()
-	ret, err := Read[CSVRecord](fp, mapping)
+	ret, err := FromCSV[CSVRecord](fp, mapping)
 	assert.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = Write(ret, mapping, &buf)
+	err = ToCSV(ret, mapping, &buf)
 	assert.NoError(t, err)
 
 	testutils.EqualSnapshot(t, buf.Bytes(), "sample2.csv.out")
@@ -175,10 +175,10 @@ func TestPack4(t *testing.T) {
 	}
 	fp, _ := os.Open("./testdata/sample3.csv")
 	defer fp.Close()
-	ret, err := Read[CSVRecord](fp, mapping)
+	ret, err := FromCSV[CSVRecord](fp, mapping)
 	assert.NoError(t, err)
 	var buf bytes.Buffer
-	err = Write(ret, mapping, &buf)
+	err = ToCSV(ret, mapping, &buf)
 	assert.NoError(t, err)
 
 	testutils.EqualSnapshot(t, buf.Bytes(), "sample3.csv.out")

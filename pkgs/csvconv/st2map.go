@@ -65,7 +65,7 @@ func (x *structField[T]) fieldMap(fv reflect.Value, ppath string) error {
 	case reflect.Int:
 		x.values[ppath] = int(fv.Int())
 	case reflect.Int64:
-		x.values[ppath] = int64(fv.Int())
+		x.values[ppath] = fv.Int()
 	case reflect.Int32:
 		x.values[ppath] = int32(fv.Int())
 	case reflect.Int16:
@@ -75,7 +75,7 @@ func (x *structField[T]) fieldMap(fv reflect.Value, ppath string) error {
 	case reflect.Uint:
 		x.values[ppath] = uint(fv.Uint())
 	case reflect.Uint64:
-		x.values[ppath] = uint64(fv.Uint())
+		x.values[ppath] = fv.Uint()
 	case reflect.Uint32:
 		x.values[ppath] = uint32(fv.Uint())
 	case reflect.Uint16:
@@ -87,7 +87,7 @@ func (x *structField[T]) fieldMap(fv reflect.Value, ppath string) error {
 	case reflect.Float32:
 		x.values[ppath] = float32(fv.Float())
 	case reflect.Float64:
-		x.values[ppath] = float64(fv.Float())
+		x.values[ppath] = fv.Float()
 	case reflect.String:
 		x.values[ppath] = fv.String()
 	case reflect.Struct:
@@ -95,8 +95,7 @@ func (x *structField[T]) fieldMap(fv reflect.Value, ppath string) error {
 	case reflect.Array, reflect.Slice:
 		for i := 0; i < fv.Len(); i++ {
 			v := fv.Index(i)
-			err := x.fieldMap(v, ppath+fmt.Sprintf("[%d]", i))
-			if err != nil {
+			if err := x.fieldMap(v, ppath+fmt.Sprintf("[%d]", i)); err != nil {
 				return err
 			}
 		}
@@ -104,7 +103,9 @@ func (x *structField[T]) fieldMap(fv reflect.Value, ppath string) error {
 	case reflect.Pointer:
 		if !fv.IsNil() {
 			v := fv.Elem()
-			x.fieldMap(v, ppath)
+			if err := x.fieldMap(v, ppath); err != nil {
+				return err
+			}
 		}
 	default:
 		return fmt.Errorf("no support type %v", fv.Kind())
@@ -234,7 +235,9 @@ func (x *structField[T]) mapField(fv reflect.Value, ppath string) error {
 						_values := map[string]interface{}{}
 						_values[m[2]] = x.values[k]
 						x.values = _values
-						x.mapField(fv.Index(idx), "")
+						if err := x.mapField(fv.Index(idx), ""); err != nil {
+							return err
+						}
 						x.values = values
 					}
 				default:
@@ -248,7 +251,9 @@ func (x *structField[T]) mapField(fv reflect.Value, ppath string) error {
 						_values := map[string]interface{}{}
 						_values[m[2]] = x.values[k]
 						x.values = _values
-						x.mapField(fv.Index(idx), "")
+						if err := x.mapField(fv.Index(idx), ""); err != nil {
+							return err
+						}
 						x.values = values
 					}
 				}
@@ -262,7 +267,9 @@ func (x *structField[T]) mapField(fv reflect.Value, ppath string) error {
 					fv.Set(reflect.New(fv.Type().Elem()))
 				}
 				v := fv.Elem()
-				x.mapField(v, ppath)
+				if err := x.mapField(v, ppath); err != nil {
+					return err
+				}
 				break
 			}
 		}
@@ -276,8 +283,7 @@ func (x *structField[T]) fieldToStruct(rv reflect.Value, mark string) error {
 	for i := 0; i < rv.NumField(); i++ {
 		field := rv.Type().Field(i)
 		fieldvalue := rv.FieldByName(field.Name)
-		err := x.mapField(fieldvalue, mark+"."+field.Name)
-		if err != nil {
+		if err := x.mapField(fieldvalue, mark+"."+field.Name); err != nil {
 			return err
 		}
 	}
