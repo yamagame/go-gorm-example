@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sample/go-gorm-example/pkgs/testutils"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ func TestPack1(t *testing.T) {
 		Value3 int
 		Value4 int
 	}
-	mapping := []Mapping{
+	mapping := []*Mapping[CSVRecord]{
 		{"Value1", ".Value1", nil},
 		{"Value2", ".Value2", nil},
 		{"Value3", ".Value3", nil},
@@ -44,7 +45,7 @@ func TestPack2(t *testing.T) {
 		Value3 *uint32
 		Value4 *string
 	}
-	mapping := []Mapping{
+	mapping := []*Mapping[CSVRecord]{
 		{"Value1", ".Value1", nil},
 		{"Value2", ".Value2", nil},
 		{"Value3", ".Value3", nil},
@@ -77,7 +78,7 @@ func TestPack3(t *testing.T) {
 		Sub1   CSVSub
 		Sub2   []CSVSub
 	}
-	mapping := []Mapping{
+	mapping := []*Mapping[CSVRecord]{
 		{"Value1", ".Value1", nil},
 		{"Value2", ".Value3[1]", nil},
 		{"Value3", ".Sub1.Value1", nil},
@@ -101,33 +102,76 @@ func TestPack3(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+type CSVRecord struct {
+	Value1 int
+	Value2 int
+	Value3 int
+	Value4 int
+	Str1   string
+	Str2   string
+	Value6 int
+}
+
+type sampleLabel struct {
+	Form string
+	Gateway[CSVRecord]
+}
+
+func (x *sampleLabel) ToCSV(v interface{}) (string, error) {
+	return fmt.Sprintf(x.Form, v), nil
+}
+
+func (x *sampleLabel) FromCSV(v string) (interface{}, error) {
+	var r int
+	_, err := fmt.Sscanf(v, x.Form, &r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func newSampleLabel(form string) GatewayInterface[CSVRecord] {
+	return &sampleLabel{
+		Form: form,
+	}
+}
+
+type addStr1AndStr2 struct {
+	Gateway[CSVRecord]
+}
+
+func (x *addStr1AndStr2) ToCSV(v interface{}) (string, error) {
+	return fmt.Sprintf("%s_%s", x.Self.Str1, x.Self.Str2), nil
+}
+
+func (x *addStr1AndStr2) FromCSV(v string) (interface{}, error) {
+	s := strings.Split(v, "_")
+	x.Field[".Str1"] = s[0]
+	x.Field[".Str2"] = s[1]
+	return s, nil
+}
+
+type addValue1AndValue2 struct {
+	Gateway[CSVRecord]
+}
+
+func (x *addValue1AndValue2) ToCSV(v interface{}) (string, error) {
+	return fmt.Sprintf("%d", x.Self.Value1+x.Self.Value2), nil
+}
+
+func (x *addValue1AndValue2) FromCSV(v string) (interface{}, error) {
+	t := x.ColumnValue("Value1")
+	return t, nil
+}
+
 func TestPack4(t *testing.T) {
-	sampleLabel := func(form string) *Gateway {
-		return &Gateway{
-			ToCSV: func(v interface{}) (string, error) {
-				return fmt.Sprintf(form, v), nil
-			},
-			ToStruct: func(v string) (interface{}, error) {
-				var r int
-				_, err := fmt.Sscanf(v, form, &r)
-				if err != nil {
-					return nil, err
-				}
-				return r, nil
-			},
-		}
-	}
-	type CSVRecord struct {
-		Value1 int
-		Value2 int
-		Value3 int
-		Value4 int
-	}
-	mapping := []Mapping{
-		{"Value1", ".Value1", sampleLabel("%02d")},
-		{"Value2", ".Value2", sampleLabel("%04d")},
-		{"Value3", ".Value3", sampleLabel("%02x")},
-		{"Value4", ".Value4", sampleLabel("%d")},
+	mapping := []*Mapping[CSVRecord]{
+		{"Value1", ".Value1", newSampleLabel("%02d")},
+		{"Value2", ".Value2", newSampleLabel("%04d")},
+		{"Value3", ".Value3", newSampleLabel("%02x")},
+		{"Value4", ".Value4", newSampleLabel("%d")},
+		{"Value5", ".Value5", &addStr1AndStr2{}},
+		{"Value6", ".Value6", &addValue1AndValue2{}},
 	}
 	fp, _ := os.Open("./testdata/sample3.csv")
 	defer fp.Close()

@@ -6,26 +6,59 @@ import (
 	"io"
 )
 
-type Gateway struct {
-	ToCSV    func(v interface{}) (string, error)
-	ToStruct func(v string) (interface{}, error)
+type GatewayInterface[T any] interface {
+	ToCSV(v interface{}) (string, error)
+	FromCSV(v string) (interface{}, error)
+	SetInfo(mapping []*Mapping[T], record []string, objptr *T, fields map[string]interface{})
+	ColumnValue(field string) string
 }
 
-type Mapping struct {
+type Gateway[T any] struct {
+	Self    *T
+	Record  []string
+	Field   map[string]interface{}
+	Mapping []*Mapping[T]
+}
+
+func (x *Gateway[T]) SetInfo(mapping []*Mapping[T], record []string, objptr *T, fields map[string]interface{}) {
+	x.Mapping = mapping
+	x.Record = record
+	x.Self = objptr
+	x.Field = fields
+}
+
+func (Gateway[T]) ToCSV(v interface{}) (string, error) {
+	return fmt.Sprintf("%v", v), nil
+}
+
+func (Gateway[T]) FromCSV(v string) (interface{}, error) {
+	return v, nil
+}
+
+func (x *Gateway[T]) ColumnValue(column string) string {
+	for i, m := range x.Mapping {
+		if m.Column == column {
+			return x.Record[i]
+		}
+	}
+	return ""
+}
+
+type Mapping[T any] struct {
 	Column    string
 	FieldPath string
-	Gateway   *Gateway
+	Gateway   GatewayInterface[T]
 }
 
 type csvConstraint[T any] interface {
 	*T
 }
 
-func Read[T any, PT csvConstraint[T]](fp io.Reader, mapping []Mapping) ([]*T, error) {
-	field := map[string]*Mapping{}
+func Read[T any, PT csvConstraint[T]](fp io.Reader, mapping []*Mapping[T]) ([]*T, error) {
+	field := map[string]*Mapping[T]{}
 	for _, v := range mapping {
 		t := v
-		field[v.Column] = &t
+		field[v.Column] = t
 	}
 	reader := csv.NewReader(fp)
 	reader.FieldsPerRecord = -1
@@ -43,37 +76,38 @@ func Read[T any, PT csvConstraint[T]](fp io.Reader, mapping []Mapping) ([]*T, er
 		if line == 0 {
 			header = record
 		} else {
-			var v T
-			result := PT(&v)
-			mapping := map[string]interface{}{}
+			var obj T
+			result := PT(&obj)
+			fields := map[string]interface{}{}
 			for i, h := range header {
 				if val, ok := field[h]; ok {
 					v := record[i]
-					if val.Gateway != nil && val.Gateway.ToStruct != nil {
+					if val.Gateway != nil {
 						var err error
 						var t interface{}
-						t, err = val.Gateway.ToStruct(v)
+						val.Gateway.SetInfo(mapping, record, &obj, fields)
+						t, err = val.Gateway.FromCSV(v)
 						if err != nil {
 							return nil, err
 						}
-						mapping[val.FieldPath] = t
+						fields[val.FieldPath] = t
 					} else {
-						mapping[val.FieldPath] = v
+						fields[val.FieldPath] = v
 					}
 				}
 			}
-			err := FieldToStruct(result, mapping)
+			err := FieldToStruct(result, fields)
 			if err != nil {
 				return nil, err
 			}
-			ret = append(ret, &v)
+			ret = append(ret, &obj)
 		}
 		line++
 	}
 	return ret, nil
 }
 
-func Write[T any, PT csvConstraint[T]](records []*T, mapping []Mapping, fp io.Writer) error {
+func Write[T any, PT csvConstraint[T]](records []*T, mapping []*Mapping[T], fp io.Writer) error {
 	writer := csv.NewWriter(fp)
 	header := []string{}
 	keys := []string{}
@@ -82,25 +116,24 @@ func Write[T any, PT csvConstraint[T]](records []*T, mapping []Mapping, fp io.Wr
 		keys = append(keys, v.FieldPath)
 	}
 	writer.Write(header)
-	for _, r := range records {
-		ret, err := StructToField(r, keys)
+	for _, obj := range records {
+		ret, err := StructToField(obj, keys)
 		if err != nil {
 			return err
 		}
 		record := []string{}
-		for i, m := range mapping {
+		for i, val := range mapping {
 			v := ""
 			f := ret[i]
-			if f != nil {
-				if m.Gateway != nil && m.Gateway.ToCSV != nil {
-					var err error
-					v, err = m.Gateway.ToCSV(f)
-					if err != nil {
-						return err
-					}
-				} else {
-					v = fmt.Sprintf("%v", f)
+			if val.Gateway != nil {
+				var err error
+				val.Gateway.SetInfo(mapping, record, obj, nil)
+				v, err = val.Gateway.ToCSV(f)
+				if err != nil {
+					return err
 				}
+			} else if f != nil {
+				v = fmt.Sprintf("%v", f)
 			}
 			record = append(record, v)
 		}
