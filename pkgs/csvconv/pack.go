@@ -45,9 +45,9 @@ func (x *Gateway[T]) ColumnValue(column string) string {
 }
 
 type Mapping[T any] struct {
-	Column    string
-	FieldPath string
-	Gateway   GatewayInterface[T]
+	Column  string
+	Key     string
+	Gateway GatewayInterface[T]
 }
 
 type csvConstraint[T any] interface {
@@ -79,20 +79,20 @@ func FromCSV[T any, PT csvConstraint[T]](fp io.Reader, mapping []*Mapping[T]) ([
 			var obj T
 			result := PT(&obj)
 			fields := map[string]interface{}{}
-			for i, h := range header {
-				if val, ok := field[h]; ok {
-					v := record[i]
-					if val.Gateway != nil {
+			for i, column := range header {
+				if g, ok := field[column]; ok {
+					val := record[i]
+					if g.Gateway != nil {
 						var err error
 						var t interface{}
-						val.Gateway.SetInfo(mapping, record, &obj, fields)
-						t, err = val.Gateway.FromCSV(v)
+						g.Gateway.SetInfo(mapping, record, &obj, fields)
+						t, err = g.Gateway.FromCSV(val)
 						if err != nil {
 							return nil, err
 						}
-						fields[val.FieldPath] = t
+						fields[g.Key] = t
 					} else {
-						fields[val.FieldPath] = v
+						fields[g.Key] = val
 					}
 				}
 			}
@@ -112,7 +112,7 @@ func ToCSV[T any, PT csvConstraint[T]](records []*T, mapping []*Mapping[T], fp i
 	keys := []string{}
 	for _, v := range mapping {
 		header = append(header, v.Column)
-		keys = append(keys, v.FieldPath)
+		keys = append(keys, v.Key)
 	}
 	writer.Write(header)
 	for _, obj := range records {
@@ -121,20 +121,20 @@ func ToCSV[T any, PT csvConstraint[T]](records []*T, mapping []*Mapping[T], fp i
 			return err
 		}
 		record := []string{}
-		for i, val := range mapping {
-			v := ""
+		for i, g := range mapping {
+			val := ""
 			f := ret[i]
-			if val.Gateway != nil {
+			if g.Gateway != nil {
 				var err error
-				val.Gateway.SetInfo(mapping, record, obj, nil)
-				v, err = val.Gateway.ToCSV(f)
+				g.Gateway.SetInfo(mapping, record, obj, nil)
+				val, err = g.Gateway.ToCSV(f)
 				if err != nil {
 					return err
 				}
 			} else if f != nil {
-				v = fmt.Sprintf("%v", f)
+				val = fmt.Sprintf("%v", f)
 			}
-			record = append(record, v)
+			record = append(record, val)
 		}
 		writer.Write(record)
 	}
