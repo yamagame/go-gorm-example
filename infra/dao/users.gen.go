@@ -34,8 +34,13 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.Name = field.NewString(tableName, "name")
 	_user.NameKana = field.NewString(tableName, "name_kana")
 	_user.Age = field.NewInt64(tableName, "age")
-	_user.CompanyID = field.NewInt64(tableName, "company_id")
 	_user.Role = field.NewField(tableName, "role")
+	_user.CompanyID = field.NewInt64(tableName, "company_id")
+	_user.Company = userHasOneCompany{
+		db: db.Session(&gorm.Session{}),
+
+		RelationField: field.NewRelation("Company", "model.Company"),
+	}
 
 	_user.fillFieldMap()
 
@@ -53,8 +58,9 @@ type user struct {
 	Name      field.String
 	NameKana  field.String
 	Age       field.Int64
-	CompanyID field.Int64
 	Role      field.Field
+	CompanyID field.Int64
+	Company   userHasOneCompany
 
 	fieldMap map[string]field.Expr
 }
@@ -78,8 +84,8 @@ func (u *user) updateTableName(table string) *user {
 	u.Name = field.NewString(table, "name")
 	u.NameKana = field.NewString(table, "name_kana")
 	u.Age = field.NewInt64(table, "age")
-	u.CompanyID = field.NewInt64(table, "company_id")
 	u.Role = field.NewField(table, "role")
+	u.CompanyID = field.NewInt64(table, "company_id")
 
 	u.fillFieldMap()
 
@@ -96,7 +102,7 @@ func (u *user) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *user) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 9)
+	u.fieldMap = make(map[string]field.Expr, 10)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
@@ -104,8 +110,9 @@ func (u *user) fillFieldMap() {
 	u.fieldMap["name"] = u.Name
 	u.fieldMap["name_kana"] = u.NameKana
 	u.fieldMap["age"] = u.Age
-	u.fieldMap["company_id"] = u.CompanyID
 	u.fieldMap["role"] = u.Role
+	u.fieldMap["company_id"] = u.CompanyID
+
 }
 
 func (u user) clone(db *gorm.DB) user {
@@ -116,6 +123,77 @@ func (u user) clone(db *gorm.DB) user {
 func (u user) replaceDB(db *gorm.DB) user {
 	u.userDo.ReplaceDB(db)
 	return u
+}
+
+type userHasOneCompany struct {
+	db *gorm.DB
+
+	field.RelationField
+}
+
+func (a userHasOneCompany) Where(conds ...field.Expr) *userHasOneCompany {
+	if len(conds) == 0 {
+		return &a
+	}
+
+	exprs := make([]clause.Expression, 0, len(conds))
+	for _, cond := range conds {
+		exprs = append(exprs, cond.BeCond().(clause.Expression))
+	}
+	a.db = a.db.Clauses(clause.Where{Exprs: exprs})
+	return &a
+}
+
+func (a userHasOneCompany) WithContext(ctx context.Context) *userHasOneCompany {
+	a.db = a.db.WithContext(ctx)
+	return &a
+}
+
+func (a userHasOneCompany) Session(session *gorm.Session) *userHasOneCompany {
+	a.db = a.db.Session(session)
+	return &a
+}
+
+func (a userHasOneCompany) Model(m *model.User) *userHasOneCompanyTx {
+	return &userHasOneCompanyTx{a.db.Model(m).Association(a.Name())}
+}
+
+type userHasOneCompanyTx struct{ tx *gorm.Association }
+
+func (a userHasOneCompanyTx) Find() (result *model.Company, err error) {
+	return result, a.tx.Find(&result)
+}
+
+func (a userHasOneCompanyTx) Append(values ...*model.Company) (err error) {
+	targetValues := make([]interface{}, len(values))
+	for i, v := range values {
+		targetValues[i] = v
+	}
+	return a.tx.Append(targetValues...)
+}
+
+func (a userHasOneCompanyTx) Replace(values ...*model.Company) (err error) {
+	targetValues := make([]interface{}, len(values))
+	for i, v := range values {
+		targetValues[i] = v
+	}
+	return a.tx.Replace(targetValues...)
+}
+
+func (a userHasOneCompanyTx) Delete(values ...*model.Company) (err error) {
+	targetValues := make([]interface{}, len(values))
+	for i, v := range values {
+		targetValues[i] = v
+	}
+	return a.tx.Delete(targetValues...)
+}
+
+func (a userHasOneCompanyTx) Clear() error {
+	return a.tx.Clear()
+}
+
+func (a userHasOneCompanyTx) Count() int64 {
+	return a.tx.Count()
 }
 
 type userDo struct{ gen.DO }

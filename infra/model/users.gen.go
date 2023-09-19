@@ -21,8 +21,9 @@ type User struct {
 	Name      *string        `gorm:"column:name;type:longtext" json:"name"`
 	NameKana  *string        `gorm:"column:name_kana;type:longtext" json:"name_kana"`
 	Age       *int64         `gorm:"column:age;type:bigint unsigned" json:"age"`
+	Role      *Role          `gorm:"column:role;type:int" json:"role"`
 	CompanyID *int64         `gorm:"column:company_id;type:bigint unsigned;index:fk_users_company,priority:1" json:"company_id"`
-	Role      *int32         `gorm:"column:role;type:int" json:"role"`
+	Company   *Company       `gorm:"foreignKey:CompanyID" json:"company"`
 }
 
 // TableName User's table name

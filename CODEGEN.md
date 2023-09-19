@@ -167,8 +167,16 @@ func main() {
 
 	// 各テーブル毎にモデルを作成
 	tables := make([]interface{}, len(tableList))
-	tables = append(tables, g.GenerateModel("users", gen.FieldType("role", "*Role")))
-	remove(tableList, "users")
+	tables = append(tables, g.GenerateModel("users",
+		gen.FieldType("role", "*Role"),
+		gen.FieldRelateModel(field.BelongsTo, "Companies", model.Company{},
+			&field.RelateConfig{
+				// RelateSlice: true,
+				GORMTag: field.GormTag{"foreignKey": []string{"CompanyID"}},
+			},
+		),
+	))
+	tableList = remove(tableList, "users")
 
 	// 残りのテーブルのモデルを作成
 	for _, tableName := range tableList {
