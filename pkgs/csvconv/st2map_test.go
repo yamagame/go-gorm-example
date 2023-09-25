@@ -355,3 +355,39 @@ func TestStructToField6(t *testing.T) {
 	testutils.EqualSnapshot(t, []byte(fmt.Sprintf("%v", ret2)), "csv-record2.out")
 	// testutils.SaveSnapshot(t, []byte(fmt.Sprintf("%v", ret2)), "csv-record2.out")
 }
+
+func TestStructToField7(t *testing.T) {
+	type CSVSubSub struct {
+		Value1 string
+		Value2 uint
+	}
+	type CSVSub struct {
+		Value1 string
+		Value2 []uint
+		Value3 *CSVSubSub
+	}
+	type CSVRecord struct {
+		Value1 *CSVSub
+		Value2 []*CSVSub
+	}
+
+	dummy := CSVRecord{}
+	mapping := []string{
+		".Value1.Value1",
+		".Value1.Value2",
+		".Value1.Value3.Value1",
+		".Value2[0]",
+	}
+	ret, err := StructToField(&dummy, mapping)
+	assert.NoError(t, err)
+	fmt.Println(ret)
+
+	dummy2 := CSVRecord{}
+	FieldToStruct(&dummy2, map[string]interface{}{
+		".Value1.Value1":        "hello1",
+		".Value1.Value2[0]":     "100",
+		".Value1.Value3.Value1": "hello3",
+		".Value2[0].Value1":     "hello4",
+	})
+	fmt.Println(*dummy2.Value1)
+}
