@@ -17,3 +17,11 @@ services:
     entrypoint: bash
     volumes:
       - ./:/app
+
+  # amazon linux に golang 開発環境を構築
+  # yum install -y wget tar procps which
+  # wget https://go.dev/dl/go1.20.8.linux-amd64.tar.gz
+  # sudo tar -C /usr/local -xzf go1.20.8.linux-amd64.tar.gz
+  # echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bash_profile
+  # source ~/.bash_profile
+  # go version
