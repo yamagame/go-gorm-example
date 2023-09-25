@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sample/go-gorm-example/pkgs/csvconv"
+	"time"
 )
 
 type Bool int
@@ -15,13 +16,16 @@ type CSVSubSub struct {
 	Value2 *Bool
 }
 type CSVSub struct {
-	Value1 string
+	Value1 *string
 	Value2 []uint
 	Value3 *CSVSubSub
 }
 type CSVRecord struct {
-	Value1 *CSVSub
-	Value2 []*CSVSub
+	Value1    *CSVSub
+	Value2    []*CSVSub
+	CreatedAt time.Time
+	Value3    *Bool
+	Value4    *string
 }
 
 func (x *CSVRecord) String() string {
@@ -37,6 +41,8 @@ func init() {
 		{"Value2", ".Value1.Value2[0]", nil},
 		{"Value3", ".Value1.Value3.Value1", nil},
 		{"Value4", ".Value2[0].Value3.Value2", nil},
+		{"Value5", ".Value3", nil},
+		{"Value6", ".Value4", nil},
 	}
 }
 

@@ -8,3 +8,12 @@ services:
     working_dir: /app
     volumes:
       - ./:/app
+
+  amazon:
+    image: amazon/aws-cli:2.13.20
+    platform: linux/x86_64
+    tty: true
+    working_dir: /app
+    entrypoint: bash
+    volumes:
+      - ./:/app
