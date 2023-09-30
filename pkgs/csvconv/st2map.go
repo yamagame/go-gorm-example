@@ -13,26 +13,26 @@ import (
 /////////////////////////////////////////////////////////////////////
 
 // StructToField 構造体を配列レコードに変換
-func StructToField[T any](v T, keys []string) ([]interface{}, error) {
+func StructToField(v any, keys []string) ([]interface{}, error) {
 	values := map[string]interface{}{}
 	return marshal(v, keys, values)
 }
 
 // marshal 構造体を配列レコードに変換
-func marshal[T any](v T, keys []string, values map[string]interface{}) ([]interface{}, error) {
-	marshal := func(v T) error {
+func marshal(v any, keys []string, values map[string]interface{}) ([]interface{}, error) {
+	marshal := func(v any) error {
 		rv := reflect.ValueOf(v)
 		kind := rv.Type().Kind()
 		if kind == reflect.Pointer {
 			switch rv.Elem().Kind() {
 			case reflect.Struct:
-				return structToField[T](rv.Elem(), "", values)
+				return structToField(rv.Elem(), "", values)
 			default:
 				return fmt.Errorf("is not struct type")
 			}
 		}
 		if kind == reflect.Struct {
-			return structToField[T](rv, "", values)
+			return structToField(rv, "", values)
 		}
 		return fmt.Errorf("is not struct type")
 	}
@@ -47,7 +47,7 @@ func marshal[T any](v T, keys []string, values map[string]interface{}) ([]interf
 	return ret, nil
 }
 
-func fieldMap[T any](fv reflect.Value, ppath string, values map[string]interface{}) error {
+func fieldMap(fv reflect.Value, ppath string, values map[string]interface{}) error {
 	switch fv.Kind() {
 	case reflect.Bool:
 		values[ppath] = fv.Bool()
@@ -80,11 +80,11 @@ func fieldMap[T any](fv reflect.Value, ppath string, values map[string]interface
 	case reflect.String:
 		values[ppath] = fv.String()
 	case reflect.Struct:
-		return structToField[T](fv, ppath, values)
+		return structToField(fv, ppath, values)
 	case reflect.Array, reflect.Slice:
 		for i := 0; i < fv.Len(); i++ {
 			v := fv.Index(i)
-			if err := fieldMap[T](v, ppath+fmt.Sprintf("[%d]", i), values); err != nil {
+			if err := fieldMap(v, ppath+fmt.Sprintf("[%d]", i), values); err != nil {
 				return err
 			}
 		}
@@ -92,7 +92,7 @@ func fieldMap[T any](fv reflect.Value, ppath string, values map[string]interface
 	case reflect.Pointer:
 		if !fv.IsNil() {
 			v := fv.Elem()
-			if err := fieldMap[T](v, ppath, values); err != nil {
+			if err := fieldMap(v, ppath, values); err != nil {
 				return err
 			}
 		}
@@ -102,11 +102,11 @@ func fieldMap[T any](fv reflect.Value, ppath string, values map[string]interface
 	return nil
 }
 
-func structToField[T any](rv reflect.Value, mark string, values map[string]interface{}) error {
+func structToField(rv reflect.Value, mark string, values map[string]interface{}) error {
 	for i := 0; i < rv.NumField(); i++ {
 		f := rv.Type().Field(i)
 		fv := rv.FieldByName(f.Name)
-		if err := fieldMap[T](fv, mark+"."+f.Name, values); err != nil {
+		if err := fieldMap(fv, mark+"."+f.Name, values); err != nil {
 			return err
 		}
 	}
@@ -118,21 +118,21 @@ func structToField[T any](rv reflect.Value, mark string, values map[string]inter
 /////////////////////////////////////////////////////////////////////
 
 // FieldToStruct 構造体を配列レコードに変換
-func FieldToStruct[T any](v T, values map[string]interface{}) error {
-	return unmarshal[T](v, values)
+func FieldToStruct(v any, values map[string]interface{}) error {
+	return unmarshal(v, values)
 }
 
 // unmarshal 構造体を配列レコードに変換
-func unmarshal[T any](v T, values map[string]interface{}) error {
+func unmarshal(v any, values map[string]interface{}) error {
 	rv := reflect.ValueOf(v)
 	kind := rv.Type().Kind()
 	if kind == reflect.Pointer && rv.Elem().Kind() == reflect.Struct {
-		return fieldToStruct[T](rv.Elem(), "", values)
+		return fieldToStruct(rv.Elem(), "", values)
 	}
 	return fmt.Errorf("is not struct pointer type")
 }
 
-func mapField[T any](fv reflect.Value, ppath string, values map[string]interface{}) error {
+func mapField(fv reflect.Value, ppath string, values map[string]interface{}) error {
 	kind := fv.Kind()
 	switch kind {
 	case reflect.Bool:
@@ -199,7 +199,7 @@ func mapField[T any](fv reflect.Value, ppath string, values map[string]interface
 			fv.Set(reflect.ValueOf(val))
 		}
 	case reflect.Struct:
-		err := fieldToStruct[T](fv, ppath, values)
+		err := fieldToStruct(fv, ppath, values)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func mapField[T any](fv reflect.Value, ppath string, values map[string]interface
 					if len(m) > 1 {
 						_values := map[string]interface{}{}
 						_values[m[2]] = values[k]
-						if err := mapField[T](fv.Index(idx), "", _values); err != nil {
+						if err := mapField(fv.Index(idx), "", _values); err != nil {
 							return err
 						}
 					}
@@ -233,7 +233,7 @@ func mapField[T any](fv reflect.Value, ppath string, values map[string]interface
 						}
 						_values := map[string]interface{}{}
 						_values[m[2]] = values[k]
-						if err := mapField[T](fv.Index(idx), "", _values); err != nil {
+						if err := mapField(fv.Index(idx), "", _values); err != nil {
 							return err
 						}
 					}
@@ -248,7 +248,7 @@ func mapField[T any](fv reflect.Value, ppath string, values map[string]interface
 					fv.Set(reflect.New(fv.Type().Elem()))
 				}
 				v := fv.Elem()
-				if err := mapField[T](v, ppath, values); err != nil {
+				if err := mapField(v, ppath, values); err != nil {
 					return err
 				}
 				break
@@ -260,11 +260,11 @@ func mapField[T any](fv reflect.Value, ppath string, values map[string]interface
 	return nil
 }
 
-func fieldToStruct[T any](rv reflect.Value, mark string, values map[string]interface{}) error {
+func fieldToStruct(rv reflect.Value, mark string, values map[string]interface{}) error {
 	for i := 0; i < rv.NumField(); i++ {
 		field := rv.Type().Field(i)
 		fieldvalue := rv.FieldByName(field.Name)
-		if err := mapField[T](fieldvalue, mark+"."+field.Name, values); err != nil {
+		if err := mapField(fieldvalue, mark+"."+field.Name, values); err != nil {
 			return err
 		}
 	}
