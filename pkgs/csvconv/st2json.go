@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func structToMap(v any) (map[string]any, error) {
+func structToJsonMap(v any) (map[string]any, error) {
 	byte, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func structToMap(v any) (map[string]any, error) {
 	return rawJson, nil
 }
 
-func mapToJson(v map[string]any) ([]byte, error) {
+func mapToJsonText(v map[string]any) ([]byte, error) {
 	byte, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
@@ -61,12 +61,12 @@ func getMapValue(values any, key []string, idx int) (interface{}, error) {
 // StructToField2 構造体を配列レコードに変換
 func StructToField2(v any, keys []string) ([]interface{}, error) {
 	ret := []interface{}{}
-	rawJson, err := structToMap(v)
+	jsonMap, err := structToJsonMap(v)
 	if err != nil {
 		return nil, err
 	}
 	for _, key := range keys {
-		v, err := getMapValue(rawJson, strings.Split(key, "."), 1)
+		v, err := getMapValue(jsonMap, strings.Split(key, "."), 1)
 		if err != nil {
 			return nil, err
 		}
@@ -121,28 +121,25 @@ func setMapValue(values any, key []string, idx int, value interface{}) error {
 		mvalue[k] = value
 		return nil
 	}
+	if _, ok := mvalue[k]; !ok {
+		mvalue[k] = map[string]interface{}{}
+	}
 	return setMapValue(mvalue[k], key, idx+1, value)
 }
 
 // FieldToStruct 配列レコードを構造体に変換
 func FieldToStruct2(v any, values map[string]interface{}) error {
-	rawJson, err := structToMap(v)
-	if err != nil {
-		return err
-	}
+	var err error
+	jsonMap := map[string]interface{}{}
 	for key, value := range values {
-		err = setMapValue(rawJson, strings.Split(key, "."), 1, value)
+		err = setMapValue(jsonMap, strings.Split(key, "."), 1, value)
 		if err != nil {
 			return err
 		}
 	}
-	ret, err := mapToJson(rawJson)
+	jsonText, err := mapToJsonText(jsonMap)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(ret, v)
-	if err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(jsonText, v)
 }
