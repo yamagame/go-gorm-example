@@ -8,20 +8,20 @@ import (
 	"strings"
 )
 
-func structToJsonMap(v any) (map[string]any, error) {
+func structToJSONMap(v any) (map[string]any, error) {
 	byte, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
-	var rawJson map[string]any
+	var rawJSON map[string]any
 	decoder := json.NewDecoder(strings.NewReader(string(byte)))
-	if err := decoder.Decode(&rawJson); err != nil {
+	if err := decoder.Decode(&rawJSON); err != nil {
 		log.Fatal(err)
 	}
-	return rawJson, nil
+	return rawJSON, nil
 }
 
-func mapToJsonText(v map[string]any) ([]byte, error) {
+func mapToJSONText(v map[string]any) ([]byte, error) {
 	byte, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func getMapValue(values any, key []string, idx int) (interface{}, error) {
 // StructToField2 構造体を配列レコードに変換
 func StructToField2(v any, keys []string) ([]interface{}, error) {
 	ret := []interface{}{}
-	jsonMap, err := structToJsonMap(v)
+	jsonMap, err := structToJSONMap(v)
 	if err != nil {
 		return nil, err
 	}
@@ -100,20 +100,19 @@ func setMapValue(values any, key []string, idx int, value interface{}) error {
 			}
 			mvalue[k] = ar
 			return setMapValue(ar[n], key, idx+1, value)
-		} else {
-			if mvalue[k] == nil {
-				mvalue[k] = []interface{}{}
-			}
+		}
+		if mvalue[k] == nil {
+			mvalue[k] = []interface{}{}
+		}
+		ar := mvalue[k].([]interface{})
+		for len(ar) < n+1 {
+			ar = append(ar, nil)
+		}
+		mvalue[k] = ar
+		if len(key) == idx+1 {
 			ar := mvalue[k].([]interface{})
-			for len(ar) < n+1 {
-				ar = append(ar, nil)
-			}
-			mvalue[k] = ar
-			if len(key) == idx+1 {
-				ar := mvalue[k].([]interface{})
-				ar[n] = value
-				return nil
-			}
+			ar[n] = value
+			return nil
 		}
 		return setMapValue(mvalue[k], key, idx+1, value)
 	}
@@ -137,7 +136,7 @@ func FieldToStruct2(v any, values map[string]interface{}) error {
 			return err
 		}
 	}
-	jsonText, err := mapToJsonText(jsonMap)
+	jsonText, err := mapToJSONText(jsonMap)
 	if err != nil {
 		return err
 	}
