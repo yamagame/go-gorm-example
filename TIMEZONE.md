@@ -1,6 +1,17 @@
 # Go-MySQL-Driver TimeZone メモ
 
-DBコンテナのタイムゾーンはUTC
+基本的には以下でよい
+
+- parseTime は true
+- loc に指定するタイムゾーンと MySQL のタイムゾーンを一致させる
+
+これらがずれると、UTC として解釈されるべき値が、JST として解釈されてしまうといった事態が発生する。このような状態に一度なってしまうと後から修正するのは困難。
+
+参考：[go-sql-driver/mysqlと日時データ型とタイムゾーン](https://zenn.dev/utsushiiro/articles/e8d5343cc374a9)
+
+## 実例
+
+DB コンテナのタイムゾーンは UTC
 
 ```sql
 mysql> show variables like '%time_zone%';
@@ -67,6 +78,7 @@ loc　は Go-MySQL-Driver の仕様、下記参照。
 
 参考：[Go-MySQL-Driver#Parameters loc](https://github.com/go-sql-driver/mysql?tab=readme-ov-file#loc)
 
+## NOW()の扱い
 
 NOW() または CURRENT_TIMESTAMP() は @@SESSION.time_zone の時刻となる。
 
