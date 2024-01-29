@@ -61,7 +61,9 @@ const DB_LOCA = "UTC" // <=== UTCにする
 INSERT INTO `users` (`created_at`,`updated_at`,`deleted_at`,`name`,`name_kana`,`used_at`,`age`,`role`,`company_id`) VALUES ('2024-01-29 13:25:55.81','2024-01-29 13:25:55.81',NULL,'名前',NULL,'0000-00-00 00:00:00',NULL,NULL,NULL)
 ```
 
-これは Go-MySQL-Driver の仕様
+ただ、この場合、返ってきた時刻も UTC になるため、意識して JST に戻す必要がある。
+
+loc　は Go-MySQL-Driver の仕様、下記参照。
 
 参考：[Go-MySQL-Driver#Parameters loc](https://github.com/go-sql-driver/mysql?tab=readme-ov-file#loc)
 
