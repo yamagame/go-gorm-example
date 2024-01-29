@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  golabo:
+    image: golang:1.20
+    platform: linux/x86_64
+    tty: true
+    working_dir: /app
+    volumes:
+      - ./:/app
+
+  amazon:
+    image: amazon/aws-cli:2.13.20
+    platform: linux/x86_64
+    tty: true
+    working_dir: /app
+    entrypoint: bash
+    volumes:
+      - ./:/app
+
+  # amazon linux に golang 開発環境を構築
+  # yum install -y wget tar procps which
+  # wget https://go.dev/dl/go1.20.8.linux-amd64.tar.gz
+  # sudo tar -C /usr/local -xzf go1.20.8.linux-amd64.tar.gz
+  # echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bash_profile
+  # source ~/.bash_profile
+  # go version
